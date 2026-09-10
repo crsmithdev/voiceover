@@ -2,25 +2,36 @@
 
 Written in ASD-STE100 Simplified Technical English.
 Feature level only. No code.
-Date: 10 September 2026. Third revision.
+Date: 10 September 2026. Fourth revision.
 
 Source of the first revision: Google Doc
 `Outbound Call Agent — Product Specification (ASD-STE100)`,
 <https://docs.google.com/document/d/1kym06wi7s1LWctCGsDNDk2x_KlwuDdhItl_FL1qfPps/edit>.
 This file is the live copy. The Google Doc is the history.
+The review that caused this revision: `Outbound Call Agent — Red Team Review of
+Revision 3`,
+<https://docs.google.com/document/d/1bMFjZJyjiKp-FtrTh7k9I6tdhI0tvdQbytxm3AYFows/edit>.
 
 This document is the specification for a personal outbound call agent. It gives
-the purpose, the background, the settled design decisions, the shared
-conversation core, the behavior knobs, the caller and receiver layers, the test
-plan, the technology choices, the build order, the measurements, and the risks.
-The document builds on prior work in the voice bridge specification.
+the purpose, the background, the settled design decisions, the conversation
+model, the test plan, the technology choices, the build order, the measurements,
+and the risks.
 
-**What changed in the third revision.** Disclosure and recording are decided
-(Section 9). The call limits and the context cap are decided (Section 10). Two
-items left the build: the transport handles the tones of a menu, and the
-framework detects a voicemail machine. The test fixtures move to telephone-grade
-audio (Section 11.5). Every setting and its default are in one table
-(Section 16). Clause 7.6 of the second revision was wrong and is corrected.
+**What changed in the fourth revision.** Four reviewers read revision 3 in
+parallel. Five changes follow from what they found.
+
+1. The rule for interruption in revision 3 was not possible to build. Section 7
+   replaces it with the mechanism that the framework has.
+2. The time budget measured the first token of text. The target is the first
+   sound. Section 3 now separates the two, and the choice of model in 4.6 is
+   provisional until the correct quantity is measured.
+3. The build order put the first real call last. Section 14 puts it fourth.
+4. The running summary is cut. The call limit already does its work.
+5. The knobs are constants at the framework default, not settings. Section 17
+   replaces the settings table.
+
+Section 6 is new and gives the conversation states, because revision 3 named the
+mechanics and never named the states between them.
 
 ## 1. Purpose
 
@@ -28,292 +39,316 @@ audio (Section 11.5). Every setting and its default are in one table
 1.2 Chris uses the agent when he wants to make a call but does not want to make it himself.
 1.3 The agent holds a real, open conversation. The agent does not read a fixed script.
 1.4 The agent has a goal for each call. The agent works toward that goal.
-1.5 The agent reports the result of the call back to Chris.
-1.6 The product is for personal use. A small number of other people can use it too.
+1.5 The agent reports the result of the call back to Chris. A call does not end without a report.
+1.6 The product is for one user. Other users are not in this revision (see Section 18.7).
 1.7 Chris builds this product himself. Chris does not use an off-the-shelf product.
+
+1.8 A call is a success when the goal is reached, or when the caller learns that
+the goal cannot be reached and says why. A fast call that gets neither is a
+failure. Speed is a constraint, not the measure.
 
 ## 2. Background and reasoning
 
 2.1 An earlier version of this product did not work well in practice.
 2.2 The earlier version used a hosted brain with separate speech-to-text and speech-to-speech services in a chain. The chain gave bad latency.
-2.3 The earlier version handled interruptions poorly.
+2.3 The earlier version handled interruptions poorly. It ran on the same agent framework, with plain sound detection for the turn and interruption turned on. So the fault was the method, not a missing feature.
 2.4 The earlier version was hard to test. The test used receiving agents that were an afterthought. The receiving agents stepped on each other. The system gave poor visibility into what happened.
 2.5 The earlier version was costly to test. The test used a paid speech service, a paid telephone service, and the brain, all at the same time, on every test.
 2.6 The industry has moved away from the chain that gives bad latency. The industry streams every stage and does not wait for a complete output before the next stage starts. Done this way, the same chain gives low latency.
 
 2.7 **Correction, made in the second revision.** The first revision said that Chris
 already runs speech-to-text and speech-to-speech on a local card. This is not true
-today. The machine holds no speech model. The voice bridge specification chooses a
-local speech engine but still lists the voice as an open point. So the two speech
-ends are decided, not built. This product must install them.
+today. The machine holds no speech model. So the two speech ends are decided, not
+built. This product must install them.
 
 2.8 The card is an NVIDIA RTX 5070 with 12 gigabytes of video memory. The machine
-has 30 gigabytes of system memory. The voice bridge specification assumes 8
-gigabytes of video memory, so it understates the headroom. A small speech-to-text
-model and a local neural voice fit on this card together.
+has 30 gigabytes of system memory. Whether a speech-to-text model and a neural
+voice fit together is not known until the models are chosen (see Section 18.1).
+Do not treat the card as sized.
 
-2.9 Nothing carries over from the earlier version. The telephone account of the
-earlier version is closed. The model account of the earlier version is disabled.
-Both were checked on 9 September 2026 and both refuse authentication. So every
-account in this product is new.
+2.9 Nothing carries over from the earlier version by account. The telephone
+account is closed. The model account is disabled. Both were checked on 9
+September 2026 and both refuse authentication.
+
+2.10 Code does carry over, and the build must decide about it. The earlier
+version holds a test orchestrator, a test receiver, and a set of test
+personalities. Keep and repair them, or delete them (see Section 18.8).
 
 ## 3. Latency model
 
 3.1 Startup latency is acceptable. Chris can wait 15 to 20 seconds to start the agent before a call.
 3.2 Per-turn latency is the real target. The person on the other end must not hear a gap that sounds like a dropped call.
-3.3 The target for per-turn latency is under about one and a half seconds to first audio, after the person stops speaking.
-3.4 The system reaches this target by streaming. The speech-to-text streams partial words. The brain streams the first tokens. The speech-to-speech starts to speak the first sentence while the rest is made.
+3.3 The target for per-turn latency is under about one and a half seconds to the
+first sound the other person hears, after that person stops speaking.
 
-3.5 The budget for one turn has four parts. Section 14 gives the measurements.
+3.4 **The measured number is not the target number.** The brain sends text word by
+word. The voice does not start until a sentence ends. So the quantity that decides
+3.3 is the time to the first complete *sentence*, not the time to the first
+*token*. Section 15 holds token measurements only. The sentence measurement does
+not exist yet. This is the largest gap in this document.
+
+3.5 The system reaches the target by streaming. The speech-to-text streams partial
+words. The brain streams the first tokens. The voice starts to speak the first
+sentence while the rest is made.
+
+3.6 The budget for one turn has four parts. Two are estimates, one is measured
+against the wrong event, and one is set by a constant.
 
 | Part | Time | Status |
 |---|---|---|
-| End-of-turn detection, after the last speech | 300 to 600 ms | Set by a knob |
-| Brain, to the first token | 740 to 870 ms at the middle value | Measured |
-| Speech-to-speech, to the first audio | 100 to 250 ms | Estimate. To measure |
+| End-of-turn detection, after the last speech | 300 to 600 ms | Set by a constant |
+| Brain, to the first token | 740 to 870 ms at the middle value | Measured, wrong event |
+| Brain, from the first token to the first sentence | Not known | **To measure first** |
+| Voice, to the first audio | 100 to 250 ms | Estimate. To measure |
 | Transport, both ways | 50 to 150 ms | Estimate. To measure |
 
-3.6 The target of 1.5 seconds holds only at the fast end of the detection knob.
-At the slow end the turn takes about 1.8 seconds. This is the main tension in the
-product: a slow detector cuts in less often but sounds slower.
+3.7 The parts do not simply add. The stages overlap by design. Do not sum this
+table and report the total as a finding. Measure the whole path end to end
+instead (see Section 15.8).
 
-3.7 The main latency risk is the brain time to first token, and a weak network. This risk gives an occasional slow turn, not a constant delay.
-
-3.8 The brain gets slower as the call gets longer, because each turn sends the
-whole conversation again. Section 10 caps the conversation for this reason.
+3.8 The main latency risk is the brain, and a weak network. This risk gives an
+occasional slow turn, not a constant delay.
 
 ## 4. Architecture decision
 
 4.1 The product uses a three-stage pipeline. The stages are speech-to-text, then the brain, then speech-to-speech.
-4.2 The product does not use a single speech-to-speech model. The reason is control. The agent speaks for Chris and must be steerable and must support tool use. Control matters more than the lowest possible latency.
+4.2 The product does not use a single speech-to-speech model. The reason is control. The agent speaks for Chris and must be steerable and must support tool use. Control matters more than the lowest possible latency. This trade was not measured.
 4.3 The local card does the speech-to-text and the speech-to-speech.
 4.4 The brain is a hosted model over a streaming interface.
-4.5 The brain does not run on the local card. So the small card is enough, and the card memory limit does not matter.
+4.5 The brain does not run on the local card.
 
-4.6 **The brain is Claude Haiku 4.5.** The middle value of the time to the first
-token is 740 to 870 milliseconds, which fits the budget in Section 3.5. The model
-keeps tool use and takes instruction well. The larger Claude models do not fit:
-Sonnet 5 measures 1254 milliseconds and Opus 5 measures 3583 milliseconds, so both
-break the target by themselves.
+4.6 **The brain is Claude Haiku 4.5, provisionally.** The middle value of the time
+to the first token is 740 to 870 milliseconds, which fits a budget built on the
+wrong event (see Section 3.4). The larger Claude models are far outside it: Sonnet
+5 at 1254 milliseconds and Opus 5 at 3583 milliseconds. The gap to those two is
+wide enough that the wrong event does not change the order. The gap between Haiku
+and the target is not. Confirm this choice against the time to the first sentence
+before any other work depends on it.
 
-4.7 The route to the brain is OpenRouter, because that key works today. A direct
-key at the model vendor removes one network hop. Measure the direct route before
-you decide that the budget is tight (see Section 14.7).
+4.7 The route to the brain is OpenRouter, because that key works today. Measure a
+direct route before you decide the budget is tight.
 
 4.8 The test receivers use a cheaper and faster model, for example Gemini 2.5
-Flash Lite at 415 milliseconds. A test receiver does not speak for Chris, so it
-does not need the same care.
+Flash Lite at 415 milliseconds. A test receiver does not speak for Chris.
 
 ## 5. The shared conversation core
 
 5.1 The caller and the receiver share the same internals for the mechanics of conversation.
-5.2 The shared mechanics are: listen, detect the end of a turn, handle interruption and barge-in, speak, and stream.
+5.2 Most of these mechanics belong to the agent framework, not to this product. This product configures them. Section 13.6 says which.
 5.3 The caller and the receiver are not identical. Each is a thin layer on top of the shared core.
-5.4 The caller layer holds the goal of the call, the background information, and the special behavior. The special behavior includes: drive toward the goal, leave a message on a voicemail machine, get through a menu system, and handle a transfer.
+5.4 The caller layer holds the goal of the call, the background information, and what the caller *says* in a special case: what to leave on a voicemail machine, what to do when a menu answers, and how to start again after a transfer. The transport detects each of these cases (see Section 13.6). The caller layer does not detect them.
 5.5 The receiver layer holds the behavior of the person who answers. In a test, the receiver layer holds a test personality.
 5.6 The purpose is reuse of the hard conversation mechanics. The purpose is not to make the two agents the same.
 
-## 6. Behavior knobs
+## 6. Conversation states
 
-6.1 Personality is a set of behavior knobs on the shared core. Personality is not a surface layer on top.
-6.2 The knobs reach into the mechanics.
+6.1 A call is a state machine. Revision 3 named the mechanics and never named the
+states, so the transitions between them were undefined. This section names them.
 
-6.3 There are five knobs. Each knob is a real parameter of the core. Section 16 gives the defaults.
+6.2 The states are: dialing, waiting for an answer, listening, thinking, speaking,
+interrupted, on hold, leaving a message, working a menu, transferring, closing,
+and ended.
 
-| Knob | What it sets |
+6.3 The transitions below must each have a defined behavior. Revision 3 defined
+none of them.
+
+| Event | Question the product must answer |
 |---|---|
-| Silence floor | The shortest silence that the voice detector reports. The detector needs at least 250 ms |
-| Endpointing delay | The wait after the detector reports the end of a turn, before the agent speaks |
-| Detector threshold | The confidence at which the end-of-turn model calls the turn finished |
-| Barge-in floor | The shortest speech that stops the agent's playback (see Section 15.6) |
-| Speech pace | The speed of the spoken output, and the length of the sentences the agent makes |
+| The far end speaks while the agent runs a tool and has no text yet | What plays, and does the speech count as a turn |
+| Both sides start to speak together | Who yields |
+| An interruption arrives and no words follow | Resume the sentence, restart it, or drop it (see 7.6) |
+| A sentence is already playing when the model corrects itself | The audio cannot be recalled. What the caller says next |
+| The soft limit fires while a party is mid-sentence | The limit waits for the sentence, never cuts it |
+| The hard limit fires | The call ends. The report is still written (see 11.4) |
+| A transfer arrives mid-sentence | The agent stops, waits, and starts again from the brief |
+| Hold music plays | It is not speech and must not satisfy any detector |
+| A voicemail greeting plays | It is a monologue. Turn-taking is off until the beep |
 
-6.4 The knobs serve two purposes.
-6.5 First purpose: adversarial test receivers. A test receiver is impolite by design. This removes the risk that two agents with the same turn detection wait for each other too politely.
-6.6 Second purpose: real tuning of the caller. A patient caller and a brisk caller give different call results. The knobs tune how Chris comes across.
-6.7 So the caller and the receiver are each a set of: the core, plus knob values, plus intent.
+6.4 The state machine is the first thing to build, and the layer one test drives
+it directly (see Section 12.3).
 
-## 7. End of turn detection
+## 7. Turn-taking and interruption
 
-7.1 End of turn detection decides when the other party has finished speaking.
-7.2 This is the hard problem of the product.
-7.3 A simple method waits for a fixed length of silence. This method is not good enough. It cuts in on a slow talker, or it waits too long.
-7.4 The product uses a method that also looks at the content of the speech, not only the silence.
+7.1 **Correction.** Revision 3 said that an interruption must come from the
+end-of-turn model, and never from the sound level. This was wrong and not possible
+to build. The two are different mechanisms that answer different questions. The
+end-of-turn model answers "has the far end finished". Interruption asks "has the
+far end started, while the agent speaks".
 
-7.5 **The method is the LiveKit Turn Detector, audio model v1-mini.** The model
-reads the audio directly. The model joins what the person says to how the person
-says it, and gives one prediction. The model does not wait for a transcript, so it
-removes the transcription delay from the hot path.
+7.2 Interruption uses the mechanism of the framework, in this order.
 
-7.6 **Correction.** The second revision said that this model needs less than 500
-megabytes of memory. That figure belongs to the older text detector, which reads a
-transcript and is deprecated. The memory footprint of the audio v1-mini model is
-not published. Measure it.
+7.2.1 The voice detector reports speech while the agent speaks.
+7.2.2 The speech must last at least a minimum time before it counts as an interruption.
+7.2.3 The speech must produce at least a minimum number of words from the speech-to-text.
+7.2.4 If no words arrive within a set time, the interruption was false.
+7.2.5 After a false interruption, the agent continues the sentence it was speaking.
 
-7.7 The audio model runs on the local processor. It has no per-use cost. It is
-part of the agent framework, so it needs no separate package. So it agrees with
-the rule in Section 12.7 that the hot path holds no paid network call.
+7.3 The agent stops its own playback as soon as 7.2.2 is satisfied. It does not wait for 7.2.3.
 
-7.8 The model needs a voice detector under it, with a silence floor of at least
-250 milliseconds.
+7.4 The word test in 7.2.3 is what protects against the echo path of a telephone
+line (see Section 16.6) and against a cough or a noise. Sound alone is not enough
+on a telephone leg.
 
-7.9 The full v1 model, which runs only on the vendor cloud, reports a false-cutoff
-rate of 9.9 percent at a 300 millisecond budget and 4.5 percent at a 600
-millisecond budget. The v1-mini model is the pruned and quantized form of the same
-model, so expect a worse rate. Measure the rate on telephone-grade audio, not on
-clean audio (see Section 11.5).
+7.5 The end-of-turn model is a separate thing, and Section 8 covers it. It runs
+after the far end stops. It does not gate an interruption.
 
-7.10 The code is Apache-2.0. The weights are under the vendor model licence.
-Personal use is permitted. Read the licence again before you give the product to
-another person.
+7.6 A false interruption must not lose the turn. The agent resumes. This behavior
+has an open fault in the framework (see Section 16.8), so a layer one test must
+prove it in this product.
 
-7.11 The knobs in Section 6.3 adjust this detector per personality.
+7.7 The product does not need to separate the voices of more than one person.
 
-## 8. Safe behavior on an unknown
+## 8. End of turn detection
 
-8.1 The caller speaks for Chris. A wrong fact said with confidence is the worst failure of this product. It is worse than a failed call.
+8.1 End of turn detection decides when the other party has finished speaking.
+8.2 A simple method waits for a fixed length of silence. It cuts in on a slow talker, or it waits too long.
+8.3 The product uses a method that also looks at the content of the speech, not only the silence.
 
-8.2 The caller may state only the facts in the call brief. Every other fact is unknown.
+8.4 **The method is the LiveKit Turn Detector, audio model v1-mini.** The model
+reads the audio directly, so it removes the transcription delay from the hot path.
+It runs on the local processor, it has no per-use cost, and it is part of the agent
+framework.
 
-8.3 The caller does not guess. The caller never invents a date, a number, a spelling, an address, or a name.
+8.5 The memory footprint of the audio v1-mini model is not published. Revision 2
+gave a figure that belongs to the older text model. Measure it.
 
-8.4 On an unknown, the caller says one short line: it does not have that detail, and it will check and come back. The caller then returns to the goal.
+8.6 The model needs a voice detector under it, with a silence floor of at least
+250 milliseconds. This is the same voice detector that feeds 7.2.1. There is one
+detector, not two, and a change to its floor moves both the end-of-turn behavior
+and the interruption behavior. Tune it as one thing.
 
-8.5 The caller does not give a payment detail, a card number, a date of birth, an account number, or a government number, unless the call brief marks that field as releasable.
+8.7 The published false-cutoff rates of 9.9 percent at 300 milliseconds and 4.5
+percent at 600 milliseconds belong to the full v1 model, which runs only on the
+vendor cloud. They are not a promise for v1-mini. Measure v1-mini on
+telephone-grade audio.
 
-8.6 The caller does not agree to a price, a fee, or a commitment that the call brief does not permit.
+8.8 The code is Apache-2.0. The weights are under the vendor model licence.
 
-8.7 If the other party needs an unknown fact to continue, the caller ends the call politely and offers a callback or a text message. The caller does not hold the line and it does not improvise.
+## 9. Safe behavior on an unknown
 
-8.8 The caller reports every blocked item to Chris with the call result.
+9.1 The caller speaks for Chris. A wrong fact said with confidence is the worst failure of this product. It is worse than a failed call.
+9.2 The caller may state only the facts in the call brief. Every other fact is unknown.
+9.3 The caller does not guess. The caller never invents a date, a number, a spelling, an address, or a name.
+9.4 On an unknown, the caller says one short line: it does not have that detail, and it will check and come back. The caller then returns to the goal.
+9.5 The caller does not give a payment detail, a card number, a date of birth, an account number, or a government number, unless the call brief marks that field as releasable.
+9.6 The caller does not agree to a price, a fee, or a commitment that the call brief does not permit.
+9.7 If the other party needs an unknown fact to continue, the caller ends the call politely and offers a callback or a text message.
+9.8 The caller reports every blocked item to Chris with the call result.
 
-8.9 One test personality asks for facts that the brief does not hold. This makes the layer three test catch an invented fact (see Section 11.9).
+9.9 This section holds the only logic in the product that the framework does not
+supply. It gets the test weight to match. The layer one test drives it directly
+with adversarial briefs, and more than one test personality probes for facts the
+brief does not hold (see Section 12.9).
 
-## 9. Disclosure and recording
+## 10. Disclosure and recording
 
-9.1 The caller opens with a line that says it is an assistant that calls for Chris.
-This opening line is a setting. Chris can turn it off.
+10.1 The caller opens with a line that says it is an assistant that calls for Chris. This opening line is a constant, and it is on.
+10.2 Two rules are absolute. First, the caller answers the direct question truthfully and at once: if a person asks whether it is a machine or an artificial intelligence, the caller says yes. Second, the caller never says that it is Chris.
+10.3 A setting that turns off 10.2 is an instruction to lie. The product does not hold such a setting.
+10.4 The question in 10.2 can arrive while the agent speaks. It is an interruption, and the word test in 7.2.3 can drop a short question. So the caller also treats the question as answerable at the next turn, and it does not continue the goal until it answers.
+10.5 A wrong transcription can hide the question. The caller answers any near form of the question the same way. When in doubt, it answers yes.
+10.6 Audio recording is off. The product keeps the text transcript that the speech-to-text makes. The product does not keep the audio.
+10.7 If recording is turned on, the caller says in its first sentence that it records the call. The two always move together.
+10.8 The reason for 10.6 and 10.7 is the law of California, which asks every party to a private conversation to agree before it is recorded. The exact statute is not cited here and this document is not legal advice (see Section 18.5).
+10.9 The transcript holds what the other party said, which can include their own personal data. Decide how long a transcript lives before the first real call (see Section 18.6).
+10.10 The first calls go to the published line of a business. The dialing path classifies the number before it dials, and refuses a number that is not a business line, until the check in 18.5 is done. An intention is not enough.
 
-9.2 Two rules are not settings. First, the caller answers the direct question
-truthfully and at once: if a person asks whether it is a machine or an artificial
-intelligence, the caller says yes. Second, the caller never says that it is Chris.
+## 11. Call limits
 
-9.3 The reason for 9.2 is that a setting which turns off these two rules is an
-instruction to lie. The product does not hold such a setting.
+11.1 A call has two limits, and both are constants (see Section 17).
+11.2 The soft limit starts the close. The caller stops working toward the goal, states where things stand, offers a callback, and ends the call politely. The soft limit never cuts a sentence.
+11.3 The hard limit cuts the call. It is the protection against a fault that will not end.
+11.4 The report is always written, at either limit, and a report from the hard limit says the call was cut. Writing the report must not depend on the brain, because the fault that reached the hard limit can be the brain. A report written from local state is enough.
+11.5 The caller carries the whole conversation to the brain. The hard limit bounds it: a call of twelve minutes stays well inside the size where the brain stays fast (see Section 15.5).
+11.6 Revision 3 held a running summary that trimmed the conversation. It is cut. It solved a problem the hard limit already prevents, and it changed the part of the prompt that 11.7 wants to stay fixed.
+11.7 The call brief does not change during a call, so it is marked as a prefix that the model provider can cache. Measure the effect on the cost and on the time to the first token.
 
-9.4 Audio recording is off. The product keeps the text transcript that the
-speech-to-text already makes. The product does not keep the audio.
+## 12. Test plan
 
-9.5 Recording is a setting. If Chris turns recording on, the caller says in its
-first sentence that it records the call. The two always move together. The product
-does not record without the announcement.
+12.1 The test plan has separable layers, so a failure points to one layer.
+12.2 The layers are not equal. Layer one and layer four carry the weight. Layer three is narrow, and this revision moves it later.
 
-9.6 The reason for 9.4 and 9.5 is the law of the state, which asks every party to
-agree before a private conversation is recorded. A transcript with no audio, and a
-recording that is announced, both stay clear of the question.
+12.3 **Layer one: conversation logic.** Tested in text, below the audio, with
+simulated timing. The test injects events and asserts what the agent does. It
+drives the state machine of Section 6, the interruption rules of Section 7, and
+the unknown-answer rules of Section 9. It is repeatable and gives readable traces.
+This is the largest test surface in the product.
 
-9.7 The first calls go to the published line of a business. Before the caller
-dials a mobile telephone or a home telephone, get a legal check. The rules that
-govern an artificial voice on those lines are stricter, and this document is not
-legal advice.
+12.4 **Layer two: the audio pipeline.** The speech-to-text, the voice, and the
+barge-in, tested with recorded audio.
 
-## 10. Call limits and context
+12.5 The fixtures are telephone-grade. Record at 16 kilohertz, then pass the
+recording through 8 kilohertz μ-law and back. A test on clean microphone audio
+gives a good result that the telephone line does not repeat.
 
-10.1 A call has two limits. Section 16 gives the defaults. Both are settings.
+12.6 Choose the speech-to-text model by measuring it on those fixtures, not from a
+public leaderboard, because the leaderboards use wide-band audio.
 
-10.2 The soft limit starts the close. At the soft limit the caller stops working
-toward the goal. It states where things stand, it offers a callback, and it ends
-the call politely.
+12.7 **Layer four: the real call.** The telephone service and a real call. It is
+the only layer that can find the echo path, the carrier delay, the caller
+identification, and the behavior of a real person. It comes early in the build
+(see Section 14).
 
-10.3 The hard limit cuts the call. The hard limit is the protection against a
-fault that will not end.
+12.8 **Layer three: two agents on one machine.** Two agents talk to each other
+with the real pipeline and no telephone network. Its yield is narrow: both sides
+share a clock, skip the network, and are built from the same code, so they agree
+by construction. It finds problems between two local processes and little else.
+Build it after the first real call, and only if layer one and layer four leave a
+gap.
 
-10.4 The caller always writes the report, at either limit. A report from the hard
-limit says that the call was cut. The caller never drops the line in the middle of
-a sentence with no report.
+12.9 Test personalities include: a slow talker, an old-sounding person, a quiet
+person, a rambler, a person who trails off, a person who says "uh-huh" in the
+middle and does not mean they are done, a voicemail machine, a menu system, and
+more than one person who asks for facts the brief does not hold.
 
-10.5 The caller does not carry the whole conversation to the brain. It carries the
-call brief, the last few exchanges in full, and a running summary of the rest.
+12.10 A test personality gets its character from behavior and timing, not from a premium voice.
 
-10.6 The number of exchanges kept in full is a setting. The size at which the
-summary starts is a setting.
+12.11 **How to pay for layer four.** The test calls a second number that Chris
+owns. No other person answers. The cost is $1.00 each month for the number, plus
+$0.005 for each outbound minute. Twenty test calls of three minutes cost about 30
+cents in minutes. Money is not a reason to run it less often.
 
-10.7 The reason is Section 14.4. The time to the first token is flat up to about
-4000 tokens of input, and then it grows. The default summary point sits at that
-knee.
+12.12 Layer four runs before the first real call, after a change to the audio
+pipeline, after a change to the transport, and when the telephone account or the
+number changes.
 
-10.8 The call brief does not change during a call. So the brief is marked as a
-prefix that the model provider can cache. This lowers the cost, and it can lower
-the time to the first token. Measure the effect (see Section 14.7).
+## 13. Technology choices
 
-## 11. Test plan
+13.1 The transport for real-time audio uses LiveKit over WebRTC. Do not build the transport by hand.
+13.2 The speech-to-text and the voice run locally on the card. They are not installed yet.
+13.3 The brain is Claude Haiku 4.5 over a streaming interface, provisionally (see 4.6).
+13.4 The end-of-turn model is the LiveKit Turn Detector v1-mini, on the local processor.
+13.5 **The telephone service is Telnyx.** The outbound rate is $0.005 each minute, the number is $1.00 each month, and the platform fee is zero. Chris buys the number from Telnyx. The caller identification level that a pay-as-you-go account receives is not confirmed (see Section 18.4).
 
-11.1 The test plan gets most of the build effort. Testing was the hardest part of the earlier version.
-11.2 The test plan has separable layers, so a failure points to one layer.
-11.3 Layer one: conversation logic. This is tested in text, below the audio, with simulated timing. The test injects events, for example "the user started to speak at time A and went silent at time B". The test asserts what the agent does. This test is repeatable and gives readable traces.
-11.4 Layer two: the audio pipeline. This is the speech-to-text, the speech-to-speech, and the barge-in. This is tested with recorded audio, not a live second agent.
+13.6 **The framework owns more than this product builds.** It sends the tones of a
+menu, it detects a menu and works through it, it says whether a person, a
+voicemail machine, a menu, or a dead line answered, and it supplies the
+interruption mechanism of Section 7 and the detector of Section 8. This product
+configures these. It does not build them. What this product builds is Section 6,
+Section 9, the caller layer, and the report.
 
-11.5 **The fixtures are telephone-grade.** Record at 16 kilohertz. Then pass the
-recording through 8 kilohertz μ-law and back. Every audio test then runs on the
-same codec as a real call. A test on clean microphone audio gives a good result
-that the telephone line does not repeat.
+13.7 Nothing but the brain makes a paid network call on the hot path.
 
-11.6 Choose the speech-to-text model by measuring it on those fixtures. Do not
-choose it from a public leaderboard, because the leaderboards use wide-band audio.
+## 14. Build order
 
-11.7 Layer three: the heavily-integrated local test. Two agents talk to each other with the real speech-to-text, the real brain, the real speech-to-speech, and real barge-in. This test does not use the telephone network. The agents pass audio to each other directly. This test is nearly free and exercises almost everything that has bugs.
-11.8 Layer four: the real end-to-end test. This test uses the telephone service and a real call. This test checks the telephone transport, the echo path, and the caller identification, which layer three cannot check. This test runs rarely.
-11.9 Test personalities give the challenge. The personalities include: a slow talker, an old-sounding person, a quiet person, a rambler, a person who trails off, a person who says "uh-huh" in the middle and does not mean they are done, a person who asks for facts the brief does not hold, a voicemail machine, and a menu system.
-11.10 A test personality gets its character from behavior and timing, through the knobs, not from a premium voice.
-11.11 The telephone service is only a transport. Two agents do not need the telephone network to talk to each other.
-11.12 The local test uses a cheap or local speech-to-speech for the test agents. The paid, high-quality voice is only for the real call.
+14.1 Build the conversation state machine of Section 6 first.
+14.2 Build the layer one test second, with simulated timing. It covers Section 6, Section 7 and Section 9.
+14.3 Install the local speech-to-text and the voice third, and measure the time to the first sentence and the time to the first audio (see Section 3.4).
 
-11.13 **How to pay for layer four.** The layer four test calls a second number that
-Chris owns. No other person answers. The cost is the number rent and the minutes.
-At Telnyx rates this is $1.00 each month, plus $0.005 for each outbound minute.
-Twenty test calls of three minutes cost about 30 cents. So the money is not a
-reason to run layer four less often. The reason is that layer four is slow and
-gives a narrow result.
+14.4 **Make one real call fourth.** Add the Telnyx transport, the caller layer and
+the report, and call a second number that Chris owns. This is the earliest point
+that tests the idea of the product, which is that streaming makes the delay
+acceptable. Everything after this point is improvement of a thing that works.
 
-11.14 Layer four runs at three moments: before the first real call, after a change
-to the audio pipeline, and after a change to the transport. It does not run on
-every commit.
+14.5 Build the audio fixtures and the layer two test fifth, with the numbers the real call gave.
+14.6 Add the test personalities sixth.
+14.7 Consider layer three last, and only if a gap remains (see 12.8).
 
-11.15 The Telnyx account holds a spend limit. The agent holds the hard call limit
-from Section 10.3. The two limits together cap a fault that dials again and again.
+## 15. Measurements
 
-## 12. Technology choices
-
-12.1 The transport for real-time audio uses LiveKit over WebRTC, as in the voice bridge. Do not build the transport by hand.
-12.2 The speech-to-text and the speech-to-speech run locally on the card. They are not installed yet (see Section 2.7).
-12.3 The brain is Claude Haiku 4.5 over a streaming interface (see Section 4.6).
-12.4 The end-of-turn model is the LiveKit Turn Detector v1-mini, on the local processor (see Section 7.5).
-12.5 **The telephone service is Telnyx.** LiveKit lists Telnyx as a tested provider. The outbound rate is half the rate of the nearest competitor, the number costs $1.00 each month, and the platform fee is zero. Chris buys the number from Telnyx, so the number carries the highest caller identification level from the first call. The service is a transport for the layer four test and the real call only.
-
-12.6 **The transport owns the tones and the machine detection.** The framework
-sends the tones of a menu, it detects a menu and works through it, and it says
-whether a person, a voicemail machine, a menu, or a dead line answered. This
-product configures these features. This product does not build them.
-
-12.7 Nothing but the brain makes a paid network call on the hot path.
-
-## 13. Build order
-
-13.1 Build the shared conversation core first.
-13.2 Build the text-level conversation-logic test second, with simulated timing.
-13.3 Install the local speech-to-text and the local speech-to-speech third.
-13.4 Build the audio pipeline fourth, with telephone-grade fixtures (see Section 11.5).
-13.5 Build the heavily-integrated local test fifth, with two agents and no telephone network.
-13.6 Add the caller layer and the receiver layer sixth. The disclosure rules of Section 9 and the limits of Section 10 land with the caller layer.
-13.7 Add the behavior knobs and the test personalities seventh.
-13.8 Add the Telnyx transport and the real end-to-end test last. Configure the tones and the machine detection here, not earlier.
-
-## 14. Measurements
-
-14.1 The time to the first token was measured on 9 September 2026. The method sent
-a call brief of about 600 tokens and a conversation of six turns, streamed the
-reply, and timed the first token of content. Each model ran eight times. The route
-was OpenRouter.
+15.1 The time to the first token was measured on 9 and 10 September 2026, through
+OpenRouter, from this machine and this network. Confirm the numbers again if
+either changes.
 
 | Model | Middle value | High value |
 |---|---|---|
@@ -325,11 +360,13 @@ was OpenRouter.
 | Claude Sonnet 5 | 1254 ms | 1305 ms |
 | Claude Opus 5 | 3583 ms | 3620 ms |
 
-14.2 The suite ran two times for most models. The two runs agree within 60
-milliseconds. So the numbers are repeatable.
+15.2 **These numbers are weaker than revision 3 claimed.** The test opened a new
+connection for each sample, so every number carries a new handshake. Each row
+comes from six or eight samples, so the "high value" is only the second-highest
+sample and no confidence interval exists. Trust the order of the models. Do not
+trust the exact values.
 
-14.3 The effect of the length of the call was measured on 10 September 2026, with
-Claude Haiku 4.5 and the same brief. Each row ran six times.
+15.3 The effect of the length of the call, with Claude Haiku 4.5:
 
 | Exchanges | Prompt tokens | Middle value | High value |
 |---|---|---|---|
@@ -338,85 +375,93 @@ Claude Haiku 4.5 and the same brief. Each row ran six times.
 | 160 | 3693 | 866 ms | 892 ms |
 | 400 | 8913 | 1282 ms | 1328 ms |
 
-14.4 The time is flat up to about 4000 tokens of input, and then it grows. A call
-of ten minutes is near the third row. So a normal call is safe, but a long brief,
-a menu, and a transfer together can push past the knee. This is the reason for the
-cap in Section 10.5.
+15.4 That test built its history by repeating four sentences, which is not what a
+real conversation looks like. So the map from exchanges to tokens is rough.
 
-14.5 The two measurements of the short case differ by about 80 milliseconds, one
-day apart. So treat 80 milliseconds as the noise, and do not read more precision
-into these numbers.
+15.5 The shape still holds: the time is flat to about 4000 tokens and then grows.
+A call inside the twelve minute hard limit stays in the flat part. This is why the
+running summary was cut.
 
-14.6 Every number includes the OpenRouter hop. The direct route was not measured,
-because no direct key works today. So every number is an upper limit.
+15.6 Two measurements of the same short case, one day apart, differ by about 80
+milliseconds. The two used different scripts, so this is not a clean noise figure.
+Treat anything under about 100 milliseconds as not meaningful.
 
-14.7 Still to measure: the time from the local voice to the first audio, the
-transport time both ways, the false-cutoff rate of the v1-mini detector on
-telephone-grade audio, the memory footprint of the v1-mini model, the time to the
-first token on a direct route, and the effect of prefix caching on both the cost
-and the time to the first token.
+15.7 Every number includes the OpenRouter hop. No direct route was measured.
 
-## 15. Open risks
+15.8 **Still to measure, in this order.** The time to the first complete sentence.
+The time from the voice to the first audio. The whole path, end to end, on a real
+telephone leg. The false-cutoff rate of v1-mini on telephone-grade audio. The
+memory footprint of v1-mini. The time to the first token on a direct route. The
+effect of prefix caching.
 
-15.1 The local test hears clean audio. A real call is low quality, compressed, and
-has noise and cross-talk. Turn detection that is good on the local test can fail on
-a real line. Section 11.5 lowers this risk but does not remove it, so the local
-test must also be able to add noise and packet loss.
+## 16. Open risks
 
-15.2 The caller can say wrong things for Chris. Section 8 gives the rule that holds
-this risk down. The rule is a behavior, so a test must prove it (see Section 11.9).
+16.1 The local tests hear clean audio. A real call is compressed and noisy.
+Section 12.5 lowers this risk. Only a real call removes it.
 
-15.3 The v1-mini detector is a smaller form of the model that has the published
-numbers. Its own numbers are not published. The detector is the hardest part of the
-product, so a worse rate hurts the most here.
+16.2 The caller can say wrong things for Chris. Section 9 holds this down, and
+Section 12.3 proves it.
 
-15.4 The budget in Section 3.5 holds two estimates and two measurements. If the
-local voice is slower than 250 milliseconds to the first audio, the target in 3.3
-fails even with the fastest brain.
+16.3 The v1-mini detector has no published numbers of its own.
 
-15.5 A new telephone number has no history. A carrier can mark it. The call volume
-of one person is very low, so the risk is small, but an important call can still
-meet a person who does not answer an unknown number.
+16.4 **The host is a desktop in a house.** It sleeps. Windows restarts it. The
+network drops. The GPU can be busy. None of this has a defined behavior yet, and
+a worker that dies leaves a real person listening to silence. The product must
+close the telephone leg when the worker dies, and it must tell Chris that the call
+ended this way.
 
-15.6 **The echo path on the telephone leg.** The echo cancellation of the framework
-belongs to the client side. A telephone leg has no such client. A speakerphone at
-the other end can send the agent its own voice, and the agent can read this as an
-interruption. So a barge-in must come from the end-of-turn model, never from the
-raw energy of the microphone, and it must need a minimum length of speech (see the
-barge-in floor in Section 6.3). Only layer four finds this fault.
+16.5 **The limits do not cap the rate.** The soft and hard limits bound one call.
+The account spend limit bounds the month. Nothing bounds how many calls happen in
+an hour, so a fault can dial the same person again and again. A rate limit is
+needed before the first real call.
 
-15.7 The caller must handle a transfer. A transfer changes the person, and the new
-person has none of the conversation. The caller starts again from the brief.
+16.6 The echo path on the telephone leg. A speakerphone at the other end can send
+the agent its own voice. The word test in 7.2.3 is the protection. Only a real
+call proves it.
 
-## 16. Settings and defaults
+16.7 A new telephone number has no history and a carrier can mark it.
 
-16.1 Every value below is a setting. The default is the starting point, not a
-finding. Tune the first five on the layer three test.
+16.8 The framework has open faults in exactly the area this product depends on.
+One report says turn detection is too sensitive and the agent cuts in on the user.
+Another says resume after a false interruption is broken. Test both in this
+product; do not assume the framework behavior.
 
-| Setting | Default | Section |
+16.9 The call brief holds personal data and has no home, no owner and no check
+that it is right. Nothing stops a wrong brief from being spoken to a stranger.
+Decide this before the first real call (see Section 18.3).
+
+## 17. Constants
+
+17.1 Every value below is a constant at the framework default, not a setting.
+Revision 3 made twelve of them settings and then said each default was a guess.
+A value becomes a setting when a measurement earns it, and not before.
+
+| Constant | Value | Section |
 |---|---|---|
-| Silence floor | 250 ms | 6.3 |
-| Endpointing delay | 400 ms | 6.3 |
-| Detector threshold | The framework default | 6.3 |
-| Barge-in floor | 300 ms of speech | 6.3, 15.6 |
-| Speech pace | Normal | 6.3 |
-| Opening line that says the caller is an assistant | On | 9.1 |
-| Audio recording, with its announcement | Off | 9.4 |
-| Soft call limit | 8 minutes | 10.2 |
-| Hard call limit | 12 minutes | 10.3 |
-| Exchanges kept in full | 20 | 10.5 |
-| Size at which the summary starts | 4000 tokens | 10.7 |
-| Spend limit on the telephone account | Set by Chris at the account | 11.15 |
+| Voice detector silence floor | 250 ms | 8.6 |
+| Endpointing delay | Framework default | 8.6 |
+| End-of-turn threshold | Framework default | 8.4 |
+| Minimum length of an interruption | Framework default | 7.2.2 |
+| Minimum words of an interruption | Framework default | 7.2.3 |
+| False interruption timeout | Framework default | 7.2.4 |
+| Resume after a false interruption | On | 7.2.5 |
+| Opening line that says the caller is an assistant | On | 10.1 |
+| Audio recording, with its announcement | Off | 10.6 |
+| Soft call limit | 8 minutes | 11.2 |
+| Hard call limit | 12 minutes | 11.3 |
+| Calls in an hour | To decide | 16.5 |
 
-## 17. Open points
+17.2 Record the framework default for each row when it is read from the framework.
+A default that is not written down is a dependency that can move without notice.
 
-17.1 Choose the local speech-to-text model and the local voice. The voice bridge
-specification also holds this point open. Choose once, for both products. Measure
-the candidates on telephone-grade fixtures (see Section 11.6).
-17.2 Set the knob values for the caller, after the layer three test.
-17.3 Decide how Chris starts a call and gives the call brief.
-17.4 Decide where the call transcript and the call result go.
-17.5 Find out why the telephone account of the earlier version was closed, before
-the new account is opened on the same identity.
-17.6 Confirm the caller identification level that Telnyx gives a pay-as-you-go
-account, before the first important call.
+## 18. Open points
+
+18.1 Choose the local speech-to-text model and the voice. Measure the candidates on telephone-grade fixtures. This also settles 2.8.
+18.2 Decide how Chris starts a call and gives the call brief.
+18.3 Decide where a call brief lives, who writes one, and what checks it before a call.
+18.4 Confirm the caller identification level that Telnyx gives a pay-as-you-go account.
+18.5 Get a legal check before the caller dials a mobile or a home number, and cite the recording statute in 10.8.
+18.6 Decide how long a call transcript lives, and where the report goes.
+18.7 Other users are out of scope. Revisit only when a second user exists.
+18.8 Keep and repair the test orchestrator and personalities of the earlier version, or delete them.
+18.9 Find out why the telephone account of the earlier version was closed, before the new account is opened on the same identity.
