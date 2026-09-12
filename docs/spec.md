@@ -331,7 +331,25 @@ number changes.
 13.2 The speech-to-text and the voice are the voice bridge's: faster-whisper `small.en` and Piper `en_US-lessac-medium`, reused as they stand (see 2.7).
 13.3 The brain is Claude Haiku 4.5 over a streaming interface, provisionally (see 4.6).
 13.4 The end-of-turn model is the LiveKit Turn Detector v1-mini, on the local processor.
-13.5 **The telephone service is Telnyx.** The outbound rate is $0.005 each minute, the number is $1.00 each month, and the platform fee is zero. Chris buys the number from Telnyx. The caller identification level that a pay-as-you-go account receives is not confirmed (see Section 18.4).
+13.5 **The telephone service is Telnyx, and the SIP host is LiveKit Cloud.** The
+outbound rate is $0.005 each minute and the number is $1.00 each month. The
+self-hosted LiveKit that the voice bridge uses sits behind Tailscale, which a
+carrier cannot reach, and opening a home desktop's SIP port and a ten-thousand
+port media range to the internet is worse than one media hop. So the caller uses
+a LiveKit Cloud project and the bridge keeps its own deployment.
+
+13.5.1 The trunk exists as of 12 September 2026. On Telnyx: the Default outbound
+voice profile, capped at one concurrent call and $2.00 each day; an FQDN
+connection over TCP with digest credentials, anchorsite Latency; an FQDN record
+pointing at the project's SIP host on port 5060; and the number attached to that
+connection. On LiveKit: one outbound trunk to `sip.telnyx.com` carrying that
+number. `scripts/setup-trunk.ts` rebuilds the LiveKit half and does nothing if it
+already exists.
+
+13.5.2 The INVITE carries an `X-Telnyx-Username` header, because Telnyx otherwise
+matches a call by source address and can choose the wrong connection. It belongs
+in the trunk's `headers`, not in `headersToAttributes`, which maps headers off an
+inbound call and would do nothing here. The vendor guide shows the latter.
 
 13.6 **The framework owns more than this product builds.** It sends the tones of a
 menu, it detects a menu and works through it, it says whether a person, a
@@ -340,7 +358,9 @@ interruption mechanism of Section 7 and the detector of Section 8. This product
 configures these. It does not build them. What this product builds is Section 6,
 Section 9, the caller layer, and the report.
 
-13.7 Nothing but the brain makes a paid network call on the hot path.
+13.7 Nothing but the brain makes a paid network call on the hot path, except the
+media hop through LiveKit Cloud that 13.5 accepts. Measure that hop as part of the
+end-to-end time (15.14).
 
 ## 14. Build order
 
@@ -538,7 +558,7 @@ A default that is not written down is a dependency that can move without notice.
 18.1 The speech-to-text model and the voice are settled by reuse (2.7). `small.en` survives the codec (15.10). What is open is whether it survives real speech with real noise, and whether a larger model earns its cost there.
 18.2 Decide how Chris starts a call and gives the call brief.
 18.3 Decide where a call brief lives, who writes one, and what checks it before a call.
-18.4 Confirm the caller identification level that Telnyx gives a pay-as-you-go account.
+18.4 Confirm the caller identification level that Telnyx gives a pay-as-you-go account. The number was bought from Telnyx on 12 September 2026, which is the condition for the highest level, but the level itself is unconfirmed.
 18.5 Get a legal check before the caller dials a mobile or a home number, and cite the recording statute in 10.8.
 18.6 Decide how long a call transcript lives, and where the report goes.
 18.7 Other users are out of scope. Revisit only when a second user exists.
