@@ -2,7 +2,7 @@
 
 Written in ASD-STE100 Simplified Technical English.
 Feature level only. No code.
-Date: 10 September 2026. Fourth revision.
+Date: 12 September 2026. Fifth revision.
 
 Source of the first revision: Google Doc
 `Outbound Call Agent — Product Specification (ASD-STE100)`,
@@ -33,6 +33,11 @@ parallel. Five changes follow from what they found.
 Section 6 is new and gives the conversation states, because revision 3 named the
 mechanics and never named the states between them.
 
+**What changed in the fifth revision.** The two unknown parts of the latency
+budget are measured, so 3.6 now holds three measurements and one estimate. The
+choice of brain in 4.6 is confirmed. The speech engines exist and are reused
+rather than chosen, because the voice bridge installed them since revision 4.
+
 ## 1. Purpose
 
 1.1 The outbound call agent makes telephone calls for Chris.
@@ -56,10 +61,11 @@ failure. Speed is a constraint, not the measure.
 2.5 The earlier version was costly to test. The test used a paid speech service, a paid telephone service, and the brain, all at the same time, on every test.
 2.6 The industry has moved away from the chain that gives bad latency. The industry streams every stage and does not wait for a complete output before the next stage starts. Done this way, the same chain gives low latency.
 
-2.7 **Correction, made in the second revision.** The first revision said that Chris
-already runs speech-to-text and speech-to-speech on a local card. This is not true
-today. The machine holds no speech model. So the two speech ends are decided, not
-built. This product must install them.
+2.7 **Twice corrected.** The first revision said the speech engines already ran
+locally, which was false when revision 2 was written. It is true now. The voice
+bridge installed both since revision 4: faster-whisper `small.en` on the card, and
+Piper with the `en_US-lessac-medium` voice, each a long-lived Python worker behind
+an interface. This product reuses them rather than choosing its own.
 
 2.8 The card is an NVIDIA RTX 5070 with 12 gigabytes of video memory. The machine
 has 30 gigabytes of system memory. Whether a speech-to-text model and a neural
@@ -81,32 +87,34 @@ personalities. Keep and repair them, or delete them (see Section 18.8).
 3.3 The target for per-turn latency is under about one and a half seconds to the
 first sound the other person hears, after that person stops speaking.
 
-3.4 **The measured number is not the target number.** The brain sends text word by
-word. The voice does not start until a sentence ends. So the quantity that decides
-3.3 is the time to the first complete *sentence*, not the time to the first
-*token*. Section 15 holds token measurements only. The sentence measurement does
-not exist yet. This is the largest gap in this document.
+3.4 **The first token is the wrong event.** The brain sends text word by word,
+and the voice does not start until a sentence ends. So the quantity that decides
+3.3 is the time to the first complete *sentence*. Revisions 1 to 4 measured the
+first token. Section 15.3 now measures the first sentence.
 
 3.5 The system reaches the target by streaming. The speech-to-text streams partial
 words. The brain streams the first tokens. The voice starts to speak the first
 sentence while the rest is made.
 
-3.6 The budget for one turn has four parts. Two are estimates, one is measured
-against the wrong event, and one is set by a constant.
+3.6 The budget for one turn has four parts. Three are measured. One is an
+estimate, and one is set by a constant.
 
 | Part | Time | Status |
 |---|---|---|
 | End-of-turn detection, after the last speech | 300 to 600 ms | Set by a constant |
-| Brain, to the first token | 740 to 870 ms at the middle value | Measured, wrong event |
-| Brain, from the first token to the first sentence | Not known | **To measure first** |
-| Voice, to the first audio | 100 to 250 ms | Estimate. To measure |
+| Brain, to the first complete sentence | 868 ms middle, 941 ms high | Measured (15.3) |
+| Voice, to a finished wav | 79 ms middle, 178 ms for a long sentence | Measured (15.5) |
 | Transport, both ways | 50 to 150 ms | Estimate. To measure |
 
 3.7 The parts do not simply add. The stages overlap by design. Do not sum this
 table and report the total as a finding. Measure the whole path end to end
-instead (see Section 15.8).
+instead (see Section 15.10).
 
-3.8 The main latency risk is the brain, and a weak network. This risk gives an
+3.8 Added together, the fast end of the detector gives about 1.3 seconds and the
+slow end gives about 1.9 seconds. So the target in 3.3 holds at the fast end and
+fails at the slow end. Both figures are upper bounds, because 3.7 holds.
+
+3.9 The main latency risk is the brain, and a weak network. This risk gives an
 occasional slow turn, not a constant delay.
 
 ## 4. Architecture decision
@@ -117,19 +125,24 @@ occasional slow turn, not a constant delay.
 4.4 The brain is a hosted model over a streaming interface.
 4.5 The brain does not run on the local card.
 
-4.6 **The brain is Claude Haiku 4.5, provisionally.** The middle value of the time
-to the first token is 740 to 870 milliseconds, which fits a budget built on the
-wrong event (see Section 3.4). The larger Claude models are far outside it: Sonnet
-5 at 1254 milliseconds and Opus 5 at 3583 milliseconds. The gap to those two is
-wide enough that the wrong event does not change the order. The gap between Haiku
-and the target is not. Confirm this choice against the time to the first sentence
-before any other work depends on it.
+4.6 **The brain is Claude Haiku 4.5.** Measured against the right event, it
+reaches the first complete sentence in 868 milliseconds at the middle value and
+941 at the high value, which fits the budget in 3.6. Sonnet 5 reaches 1996 and
+2280, so it breaks the target on its own. The choice is confirmed.
 
-4.7 The route to the brain is OpenRouter, because that key works today. Measure a
+4.7 A model that writes a longer first sentence pays twice, because the first
+sentence is what the voice waits for. Sonnet 5 spends 727 milliseconds between
+its first token and its first sentence; Haiku 4.5 spends 186. So the style
+instruction that asks for short sentences is part of the latency design, not only
+the manner of the caller.
+
+4.8 The route to the brain is OpenRouter, because that key works today. Measure a
 direct route before you decide the budget is tight.
 
-4.8 The test receivers use a cheaper and faster model, for example Gemini 2.5
-Flash Lite at 415 milliseconds. A test receiver does not speak for Chris.
+4.9 The test receivers use a cheaper and faster model. Gemini 2.5 Flash reaches a
+first sentence in 666 milliseconds, and Flash Lite reaches 558 but with a high
+value of 1282, so it is the less steady of the two. A test receiver does not
+speak for Chris.
 
 ## 5. The shared conversation core
 
@@ -259,7 +272,7 @@ brief does not hold (see Section 12.9).
 11.2 The soft limit starts the close. The caller stops working toward the goal, states where things stand, offers a callback, and ends the call politely. The soft limit never cuts a sentence.
 11.3 The hard limit cuts the call. It is the protection against a fault that will not end.
 11.4 The report is always written, at either limit, and a report from the hard limit says the call was cut. Writing the report must not depend on the brain, because the fault that reached the hard limit can be the brain. A report written from local state is enough.
-11.5 The caller carries the whole conversation to the brain. The hard limit bounds it: a call of twelve minutes stays well inside the size where the brain stays fast (see Section 15.5).
+11.5 The caller carries the whole conversation to the brain. The hard limit bounds it: a call of twelve minutes stays well inside the size where the brain stays fast (see Section 15.9).
 11.6 Revision 3 held a running summary that trimmed the conversation. It is cut. It solved a problem the hard limit already prevents, and it changed the part of the prompt that 11.7 wants to stay fixed.
 11.7 The call brief does not change during a call, so it is marked as a prefix that the model provider can cache. Measure the effect on the cost and on the time to the first token.
 
@@ -315,7 +328,7 @@ number changes.
 ## 13. Technology choices
 
 13.1 The transport for real-time audio uses LiveKit over WebRTC. Do not build the transport by hand.
-13.2 The speech-to-text and the voice run locally on the card. They are not installed yet.
+13.2 The speech-to-text and the voice are the voice bridge's: faster-whisper `small.en` and Piper `en_US-lessac-medium`, reused as they stand (see 2.7).
 13.3 The brain is Claude Haiku 4.5 over a streaming interface, provisionally (see 4.6).
 13.4 The end-of-turn model is the LiveKit Turn Detector v1-mini, on the local processor.
 13.5 **The telephone service is Telnyx.** The outbound rate is $0.005 each minute, the number is $1.00 each month, and the platform fee is zero. Chris buys the number from Telnyx. The caller identification level that a pay-as-you-go account receives is not confirmed (see Section 18.4).
@@ -333,7 +346,7 @@ Section 9, the caller layer, and the report.
 
 14.1 Build the conversation state machine of Section 6 first.
 14.2 Build the layer one test second, with simulated timing. It covers Section 6, Section 7 and Section 9.
-14.3 Install the local speech-to-text and the voice third, and measure the time to the first sentence and the time to the first audio (see Section 3.4).
+14.3 Reuse the bridge's speech engines third. The first sentence and the voice are measured (15.3, 15.5). What remains is the speech-to-text on telephone-grade audio (15.10).
 
 14.4 **Make one real call fourth.** Add the Telnyx transport, the caller layer and
 the report, and call a second number that Chris owns. This is the earliest point
@@ -346,27 +359,69 @@ acceptable. Everything after this point is improvement of a thing that works.
 
 ## 15. Measurements
 
-15.1 The time to the first token was measured on 9 and 10 September 2026, through
-OpenRouter, from this machine and this network. Confirm the numbers again if
-either changes.
+15.1 The time to the first complete sentence was measured on 12 September 2026,
+through OpenRouter, from this machine and this network. Fifteen samples for each
+model, one connection reused for all of them, and two warm-up calls discarded
+before any sample was timed. The sentence rule is the one the product uses.
+
+15.2 The gap between the first token and the first sentence is the part that
+revisions 1 to 4 missed. It is not a constant. A model that writes a longer or
+more considered first sentence pays a larger gap, so the gap belongs to the model
+and not to the pipeline.
+
+15.3 The first sentence, and the first token beside it for comparison:
+
+| Model | Token, middle | Sentence, middle | Sentence, high | Gap | Sentence length |
+|---|---|---|---|---|---|
+| Gemini 2.5 Flash Lite | 426 ms | 558 ms | 1282 ms | 132 ms | 32 chars |
+| Gemini 2.5 Flash | 482 ms | 666 ms | 807 ms | 183 ms | 40 chars |
+| **Claude Haiku 4.5** | **681 ms** | **868 ms** | **941 ms** | **186 ms** | 57 chars |
+| Claude Sonnet 5 | 1269 ms | 1996 ms | 2280 ms | 727 ms | 49 chars |
+
+15.4 Reusing one connection moved the first token for Haiku 4.5 from 740
+milliseconds to 681. Revision 4 blamed the missing reuse for much of the error in
+the earlier numbers. The criticism was right in principle and worth about 60
+milliseconds, which is inside the noise in 15.7.
+
+15.5 The voice was measured on 12 September 2026, through the bridge's own worker,
+on the sentences the models above produced. Six samples for each sentence, two
+warm-ups discarded.
+
+| Sentence length | To a finished wav | Audio produced | Times real time |
+|---|---|---|---|
+| 26 chars | 46 ms | 1498 ms | 32.5 |
+| 40 chars | 70 ms | 2577 ms | 37.1 |
+| 44 chars | 79 ms | 2624 ms | 33.1 |
+| 54 chars | 178 ms | 2949 ms | 16.5 |
+| 65 chars | 102 ms | 3471 ms | 34.2 |
+
+15.6 The voice loads in about 0.93 seconds, once, and then runs at about 33 times
+real time. So the voice is not a latency problem at this sentence length, and the
+estimate of 100 to 250 milliseconds in revision 4 was pessimistic. The 54
+character row is slower than the 65 character row, which says the variance
+between runs is larger than the effect of length over this range.
+
+15.7 Repeated measurements of the same case differ by up to about 80
+milliseconds, and earlier runs used a different script. Treat anything under
+about 100 milliseconds as not meaningful.
+
+15.8 The earlier measurement, of the first token only, on 9 and 10 September
+2026, kept because it covers models the new run does not:
 
 | Model | Middle value | High value |
 |---|---|---|
 | Gemini 2.5 Flash Lite | 415 ms | 487 ms |
 | Gemini 2.5 Flash | 529 ms | 609 ms |
 | GPT-4.1 mini | 597 ms | 846 ms |
-| **Claude Haiku 4.5** | **740 ms** | **798 ms** |
+| Claude Haiku 4.5 | 740 ms | 798 ms |
 | Gemini 3 Flash preview | 933 ms | 1023 ms |
 | Claude Sonnet 5 | 1254 ms | 1305 ms |
 | Claude Opus 5 | 3583 ms | 3620 ms |
 
-15.2 **These numbers are weaker than revision 3 claimed.** The test opened a new
-connection for each sample, so every number carries a new handshake. Each row
-comes from six or eight samples, so the "high value" is only the second-highest
-sample and no confidence interval exists. Trust the order of the models. Do not
-trust the exact values.
+Those rows came from six or eight samples with a new connection each time, so
+trust the order of the models and not the values.
 
-15.3 The effect of the length of the call, with Claude Haiku 4.5:
+15.9 The effect of the length of the call, with Claude Haiku 4.5:
 
 | Exchanges | Prompt tokens | Middle value | High value |
 |---|---|---|---|
@@ -375,24 +430,16 @@ trust the exact values.
 | 160 | 3693 | 866 ms | 892 ms |
 | 400 | 8913 | 1282 ms | 1328 ms |
 
-15.4 That test built its history by repeating four sentences, which is not what a
-real conversation looks like. So the map from exchanges to tokens is rough.
+That test built its history by repeating four sentences, so the map from
+exchanges to tokens is rough. The shape holds: flat to about 4000 tokens, then
+growing. A call inside the twelve minute hard limit stays in the flat part, which
+is why the running summary was cut.
 
-15.5 The shape still holds: the time is flat to about 4000 tokens and then grows.
-A call inside the twelve minute hard limit stays in the flat part. This is why the
-running summary was cut.
-
-15.6 Two measurements of the same short case, one day apart, differ by about 80
-milliseconds. The two used different scripts, so this is not a clean noise figure.
-Treat anything under about 100 milliseconds as not meaningful.
-
-15.7 Every number includes the OpenRouter hop. No direct route was measured.
-
-15.8 **Still to measure, in this order.** The time to the first complete sentence.
-The time from the voice to the first audio. The whole path, end to end, on a real
-telephone leg. The false-cutoff rate of v1-mini on telephone-grade audio. The
-memory footprint of v1-mini. The time to the first token on a direct route. The
-effect of prefix caching.
+15.10 **Still to measure, in this order.** The speech-to-text on telephone-grade
+audio, at 8 kHz μ-law. The whole path, end to end, on a real telephone leg. The
+transport time both ways. The false-cutoff rate of v1-mini on telephone-grade
+audio. The memory footprint of v1-mini. The time to the first token on a direct
+route. The effect of prefix caching.
 
 ## 16. Open risks
 
@@ -430,6 +477,12 @@ product; do not assume the framework behavior.
 that it is right. Nothing stops a wrong brief from being spoken to a stranger.
 Decide this before the first real call (see Section 18.3).
 
+16.10 **Two products now want one card.** The voice bridge runs as a service and
+holds the speech engines this product reuses (2.7). Both want the same card and
+the same models directory. Decide whether the caller starts its own pair of
+workers or shares the bridge's, before a call and a voice session can overlap
+(see Section 18.10).
+
 ## 17. Constants
 
 17.1 Every value below is a constant at the framework default, not a setting.
@@ -456,7 +509,7 @@ A default that is not written down is a dependency that can move without notice.
 
 ## 18. Open points
 
-18.1 Choose the local speech-to-text model and the voice. Measure the candidates on telephone-grade fixtures. This also settles 2.8.
+18.1 The speech-to-text model and the voice are settled by reuse (2.7). What is open is whether `small.en` holds up at 8 kHz, and whether a larger model is needed for a telephone line.
 18.2 Decide how Chris starts a call and gives the call brief.
 18.3 Decide where a call brief lives, who writes one, and what checks it before a call.
 18.4 Confirm the caller identification level that Telnyx gives a pay-as-you-go account.
@@ -465,3 +518,4 @@ A default that is not written down is a dependency that can move without notice.
 18.7 Other users are out of scope. Revisit only when a second user exists.
 18.8 Keep and repair the test orchestrator and personalities of the earlier version, or delete them.
 18.9 Find out why the telephone account of the earlier version was closed, before the new account is opened on the same identity.
+18.10 Decide whether the caller starts its own speech workers or shares the voice bridge's (see Section 16.10).
