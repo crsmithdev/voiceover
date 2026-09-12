@@ -346,7 +346,7 @@ Section 9, the caller layer, and the report.
 
 14.1 Build the conversation state machine of Section 6 first.
 14.2 Build the layer one test second, with simulated timing. It covers Section 6, Section 7 and Section 9.
-14.3 Reuse the bridge's speech engines third. The first sentence and the voice are measured (15.3, 15.5). What remains is the speech-to-text on telephone-grade audio (15.10).
+14.3 Reuse the bridge's speech engines third. Done: the first sentence, the voice and the speech-to-text on a telephone band are measured (15.3, 15.5, 15.10). What remains needs a real line.
 
 14.4 **Make one real call fourth.** Add the Telnyx transport, the caller layer and
 the report, and call a second number that Chris owns. This is the earliest point
@@ -435,16 +435,42 @@ exchanges to tokens is rough. The shape holds: flat to about 4000 tokens, then
 growing. A call inside the twelve minute hard limit stays in the flat part, which
 is why the running summary was cut.
 
-15.10 **Still to measure, in this order.** The speech-to-text on telephone-grade
-audio, at 8 kHz μ-law. The whole path, end to end, on a real telephone leg. The
+15.10 The speech-to-text was measured on a telephone band on 12 September 2026.
+Each line was synthesized, passed through 300 to 3400 hertz and 8 kilohertz
+μ-law, then returned to 16 kilohertz for the model. The comparison is the
+narrowband transcript against the clean transcript of the same line. Comparing
+against the written line instead measures how the model writes numbers, which the
+codec does not touch.
+
+| Version | Lines identical to clean | Words adrift | Transcribe time |
+|---|---|---|---|
+| Telephone band and μ-law | 9 of 10 | 1 | 112 to 124 ms |
+| The same with noise added | 7 of 10 | 3 to 9 | 122 ms |
+
+15.11 So the codec is not the problem. Noise is. The single narrowband difference
+was the narrowband version hearing a word that the clean version dropped. The
+noisy version turned "on is" into "on his", and put a word in front of a
+sentence. Those are the errors that change what the caller believes it was told.
+
+15.12 The noise in that test is not seeded, so the noisy row moves between runs,
+between 3 and 9 words. Replace it with a fixed noise file before anyone uses it
+as a threshold.
+
+15.13 The speech is synthetic and the line is simulated. Real speech on a real
+line is layer four, and nothing here replaces it.
+
+15.14 **Still to measure, in this order.** The whole path, end to end, on a real telephone leg. The
 transport time both ways. The false-cutoff rate of v1-mini on telephone-grade
 audio. The memory footprint of v1-mini. The time to the first token on a direct
 route. The effect of prefix caching.
 
 ## 16. Open risks
 
-16.1 The local tests hear clean audio. A real call is compressed and noisy.
-Section 12.5 lowers this risk. Only a real call removes it.
+16.1 The local tests hear clean audio. Section 15.10 shows that the compression
+by itself changes almost nothing, and that noise changes the words. So the risk
+is narrower than revision 4 assumed but not smaller: the fixtures must carry
+seeded noise, not only the codec, or the layer two test will pass on audio that
+no telephone produces. Only a real call removes this risk.
 
 16.2 The caller can say wrong things for Chris. Section 9 holds this down, and
 Section 12.3 proves it.
@@ -509,7 +535,7 @@ A default that is not written down is a dependency that can move without notice.
 
 ## 18. Open points
 
-18.1 The speech-to-text model and the voice are settled by reuse (2.7). What is open is whether `small.en` holds up at 8 kHz, and whether a larger model is needed for a telephone line.
+18.1 The speech-to-text model and the voice are settled by reuse (2.7). `small.en` survives the codec (15.10). What is open is whether it survives real speech with real noise, and whether a larger model earns its cost there.
 18.2 Decide how Chris starts a call and gives the call brief.
 18.3 Decide where a call brief lives, who writes one, and what checks it before a call.
 18.4 Confirm the caller identification level that Telnyx gives a pay-as-you-go account.
