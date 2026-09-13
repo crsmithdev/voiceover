@@ -20,7 +20,12 @@ export type Phase =
   | "closing"
   | "ended";
 
-export type AnsweredBy = "person" | "voicemail" | "ivr" | "dead";
+/**
+ * Who or what picked up. "unknown" is honest rather than lazy: the answering
+ * machine detection belongs to the agent session, so a bare SIP dial cannot
+ * classify the answer at all and must not claim a person.
+ */
+export type AnsweredBy = "person" | "voicemail" | "ivr" | "dead" | "unknown";
 
 export type EndReason =
   | "goal-closed"
@@ -121,6 +126,8 @@ export interface CallState {
   holdMusic: boolean;
   /** 6.3 a voicemail greeting is a monologue: turn-taking is off until the beep. */
   turnTakingOff: boolean;
+  /** What picked up, as far as anything could tell. */
+  answeredBy: AnsweredBy | null;
   endReason: EndReason | null;
   trace: string[];
 }
@@ -141,6 +148,7 @@ export function initial(): CallState {
     closeStarted: false,
     holdMusic: false,
     turnTakingOff: false,
+    answeredBy: null,
     endReason: null,
     trace: [],
   };
@@ -170,6 +178,7 @@ export function step(prev: CallState, event: Event, k: Constants = constants): S
       break;
 
     case "answered":
+      state.answeredBy = event.by;
       if (event.by === "dead") {
         state.endReason = "dead-line";
         actions.push({ kind: "endCall", reason: "dead-line" }, { kind: "writeReport", reason: "dead-line" });
@@ -185,6 +194,8 @@ export function step(prev: CallState, event: Event, k: Constants = constants): S
         to("workingMenu");
         break;
       }
+      // "person" and "unknown" take the same path. The difference is only what
+      // the report is allowed to say afterwards.
       to("thinking");
       actions.push({ kind: "sendToBrain", reason: "turn" });
       break;

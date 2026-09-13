@@ -78,6 +78,23 @@ describe("buildReport", () => {
     expect(summarise(report)).not.toContain("WARNING: the call did not close");
   });
 
+  test("the report does not claim a person when nothing could tell", () => {
+    const { state } = run(
+      [
+        { kind: "dial", at: 0 },
+        { kind: "answered", at: 1_000, by: "unknown" },
+        { kind: "sentenceReady", at: 1_200, text: "This is a test call." },
+        { kind: "playbackFinished", at: 4_000 },
+        { kind: "hangUp", at: 4_500 },
+      ],
+      k,
+    );
+    const report = buildReport(state, context, 4_500);
+    expect(report.answeredBy).toBe("unknown");
+    expect(summarise(report)).toContain("nothing could tell what");
+    expect(summarise(report)).not.toContain("answered by a person");
+  });
+
   test("blocked items are listed for Chris", () => {
     const { state } = run(closed, k);
     const report = buildReport(state, { ...context, blocked: ["date of birth", "insurance member id"] }, 14_000);

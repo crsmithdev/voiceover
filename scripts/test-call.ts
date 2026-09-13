@@ -103,33 +103,21 @@ const participant = await sip.createSipParticipant(trunkId, target, roomName, {
   playDialtone: false,
   ringingTimeout: RING_SECONDS,
   maxCallDuration: MAX_CALL_SECONDS,
+  waitUntilAnswered: true,
 });
 console.log(`dialled ${target} as ${participant.participantIdentity}`);
 
-/** The SIP participant carries the call state on an attribute. */
-const status = (): string => {
-  for (const person of room.remoteParticipants.values()) {
-    const value = person.attributes?.["sip.callStatus"];
-    if (value) return value;
-  }
-  return "";
-};
-
-const deadline = Date.now() + (RING_SECONDS + 5) * 1000;
-let answered = false;
-while (Date.now() < deadline) {
-  const now = status();
-  if (now === "active") {
-    answered = true;
-    break;
-  }
-  if (now === "hangup" || now === "error") break;
-  await Bun.sleep(250);
-}
-console.log(`answer: ${answered ? "picked up" : `never answered, last status ${status() || "none"}`}`);
+// `waitUntilAnswered` returns once something picks up, so reaching here is the
+// answer. What picked up is another matter: the answering machine detection
+// belongs to the agent session, and this script has none. A voicemail greeting
+// and a person are indistinguishable from here, so the call says "unknown"
+// rather than claiming a person. The first run of this script claimed a person
+// and left its sentence on a voicemail.
+const answered = true;
+console.log("answer: something picked up; this script cannot tell what");
 
 if (answered) {
-  events.push({ kind: "answered", at: Date.now(), by: "person" });
+  events.push({ kind: "answered", at: Date.now(), by: "unknown" });
   // Let the media path settle before the first word, or the opening syllable
   // is clipped on a leg that has only just come up.
   await Bun.sleep(1_000);

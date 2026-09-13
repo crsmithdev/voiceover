@@ -6,7 +6,7 @@
  * ended the call can be the brain. So nothing here calls anything: it reads the
  * state the reducer already holds and turns it into a record.
  */
-import type { CallState, EndReason } from "./state.ts";
+import type { AnsweredBy, CallState, EndReason } from "./state.ts";
 
 export interface CallContext {
   number: string;
@@ -21,6 +21,8 @@ export interface Report {
   number: string;
   goal: string;
   outcome: EndReason | "unknown";
+  /** null when nothing answered at all. */
+  answeredBy: AnsweredBy | null;
   /** True when the goal was reached or refused cleanly, not cut short. */
   clean: boolean;
   startedAt: number | null;
@@ -42,6 +44,7 @@ export function buildReport(state: CallState, context: CallContext, endedAt: num
     number: context.number,
     goal: context.goal,
     outcome: state.endReason ?? "unknown",
+    answeredBy: state.answeredBy,
     clean: state.endReason !== null && CLEAN.includes(state.endReason),
     startedAt: state.startedAt,
     endedAt,
@@ -69,8 +72,15 @@ const REASONS: Record<EndReason | "unknown", string> = {
 /** A few lines a person can read without opening the record. */
 export function summarise(report: Report): string {
   const seconds = report.durationMs === null ? "unknown" : `${Math.round(report.durationMs / 1000)} s`;
+  const answered =
+    report.answeredBy === null
+      ? "nothing answered"
+      : report.answeredBy === "unknown"
+        ? "something answered, and nothing could tell what"
+        : `answered by a ${report.answeredBy === "person" ? "person" : report.answeredBy}`;
   const lines = [
     `${report.number} — ${REASONS[report.outcome]}`,
+    answered,
     `goal: ${report.goal}`,
     `${seconds}, ${report.said.length} said, ${report.heard.length} heard`,
   ];

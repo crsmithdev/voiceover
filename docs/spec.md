@@ -368,7 +368,13 @@ inbound call and would do nothing here. The vendor guide shows the latter.
 menu, it detects a menu and works through it, it says whether a person, a
 voicemail machine, a menu, or a dead line answered, and it supplies the
 interruption mechanism of Section 7 and the detector of Section 8. This product
-configures these. It does not build them. What this product builds is Section 6,
+configures these. It does not build them.
+
+13.6.1 One qualifier, learned on the first call. The classification of who
+answered belongs to the *agent session*, not to the act of dialling. A script
+that only creates a SIP participant gets "something picked up" and nothing more.
+So any code path that dials without an agent session must record the answer as
+unknown. It must not assume a person. What this product builds is Section 6,
 Section 9, the caller layer, and the report.
 
 13.7 The agent framework is `@livekit/agents` for Node, version 1.8.1. It carries
@@ -510,6 +516,12 @@ the caller identification, the codec and the outbound audio path all work.
 never took a turn, so it measured nothing about turn-taking, interruption, or the
 time from the far end stopping to the first sound back. The one number in 3.6
 that is still an estimate is still an estimate.
+
+15.15.1 Chris missed that call, so what answered after 24.6 seconds was his
+voicemail. The script recorded a person, because it had been written to assume
+one. The audio still reached a real telephone through the trunk, which is what
+the test was for, but the lesson is 13.6.1: without an agent session nothing can
+tell a greeting from a hello.
 
 15.16 **Still to measure, in this order.** The whole path, end to end, on a real telephone leg. The
 transport time both ways. The false-cutoff rate of v1-mini on telephone-grade
