@@ -108,7 +108,7 @@ estimate, and one is set by a constant.
 
 3.7 The parts do not simply add. The stages overlap by design. Do not sum this
 table and report the total as a finding. Measure the whole path end to end
-instead (see Section 15.10).
+instead (see Section 15.16).
 
 3.8 Added together, the fast end of the detector gives about 1.3 seconds and the
 slow end gives about 1.9 seconds. So the target in 3.3 holds at the fast end and
@@ -380,7 +380,7 @@ second language beyond the two Python speech workers it reuses.
 
 13.8 Nothing but the brain makes a paid network call on the hot path, except the
 media hop through LiveKit Cloud that 13.5 accepts. Measure that hop as part of the
-end-to-end time (15.14).
+end-to-end time (15.16).
 
 ## 14. Build order
 
@@ -388,10 +388,12 @@ end-to-end time (15.14).
 14.2 Build the layer one test second, with simulated timing. It covers Section 6, Section 7 and Section 9.
 14.3 Reuse the bridge's speech engines third. Done: the first sentence, the voice and the speech-to-text on a telephone band are measured (15.3, 15.5, 15.10). What remains needs a real line.
 
-14.4 **Make one real call fourth.** Add the Telnyx transport, the caller layer and
-the report, and call a second number that Chris owns. This is the earliest point
-that tests the idea of the product, which is that streaming makes the delay
-acceptable. Everything after this point is improvement of a thing that works.
+14.4 **Make one real call fourth.** Done on 12 September 2026 for the
+connectivity half (15.14): the trunk carries audio to a real telephone.
+`scripts/test-call.ts` dials, speaks one sentence and hangs up, behind the gate of
+10.10 and the rate limit of 16.5. What it does not do is hold a turn, so the idea
+of the product, that streaming makes the delay acceptable, is still untested.
+That needs the speech-to-text and the brain wired into the same call.
 
 14.5 Build the audio fixtures and the layer two test fifth, with the numbers the real call gave.
 14.6 Add the test personalities sixth.
@@ -499,7 +501,17 @@ as a threshold.
 15.13 The speech is synthetic and the line is simulated. Real speech on a real
 line is layer four, and nothing here replaces it.
 
-15.14 **Still to measure, in this order.** The whole path, end to end, on a real telephone leg. The
+15.14 **The first real call was placed on 12 September 2026**, to a number Chris
+owns. It dialled through the Telnyx trunk, rang for 24.6 seconds, was answered,
+spoke one sentence of 5.8 seconds through the local voice, and ended. The trunk,
+the caller identification, the codec and the outbound audio path all work.
+
+15.15 That call proves less than it looks. The agent spoke first and the far end
+never took a turn, so it measured nothing about turn-taking, interruption, or the
+time from the far end stopping to the first sound back. The one number in 3.6
+that is still an estimate is still an estimate.
+
+15.16 **Still to measure, in this order.** The whole path, end to end, on a real telephone leg. The
 transport time both ways. The false-cutoff rate of v1-mini on telephone-grade
 audio. The memory footprint of v1-mini. The time to the first token on a direct
 route. The effect of prefix caching.

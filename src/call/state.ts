@@ -28,6 +28,7 @@ export type EndReason =
   | "hard-limit"
   | "message-left"
   | "far-end-hung-up"
+  | "caller-hung-up"
   | "dead-line";
 
 export type Event =
@@ -46,6 +47,7 @@ export type Event =
   | { kind: "transferComplete"; at: number }
   | { kind: "menuCleared"; at: number }
   | { kind: "farEndHungUp"; at: number }
+  | { kind: "hangUp"; at: number }
   | { kind: "tick"; at: number };
 
 export type SendReason = "turn" | "superseded" | "disclosure" | "voicemail-beep" | "restart-from-brief";
@@ -311,6 +313,18 @@ export function step(prev: CallState, event: Event, k: Constants = constants): S
       actions.push(
         { kind: "endCall", reason: "far-end-hung-up" },
         { kind: "writeReport", reason: "far-end-hung-up" },
+      );
+      to("ended");
+      break;
+
+    // The caller ends the call itself. Distinct from the far end hanging up,
+    // because a report that blames the other party for our own hangup is a lie.
+    case "hangUp":
+      state.endReason = "caller-hung-up";
+      if (prev.phase === "speaking") actions.push({ kind: "stopPlayback" });
+      actions.push(
+        { kind: "endCall", reason: "caller-hung-up" },
+        { kind: "writeReport", reason: "caller-hung-up" },
       );
       to("ended");
       break;

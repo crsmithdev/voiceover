@@ -70,6 +70,14 @@ describe("buildReport", () => {
     expect(summarise(report)).toContain("WARNING: a direct question");
   });
 
+  test("a call the caller ended reads as clean", () => {
+    const { state } = run([...closed.slice(0, 3), { kind: "hangUp", at: 9_000 }], k);
+    const report = buildReport(state, context, 9_000);
+    expect(report.outcome).toBe("caller-hung-up");
+    expect(report.clean).toBe(true);
+    expect(summarise(report)).not.toContain("WARNING: the call did not close");
+  });
+
   test("blocked items are listed for Chris", () => {
     const { state } = run(closed, k);
     const report = buildReport(state, { ...context, blocked: ["date of birth", "insurance member id"] }, 14_000);

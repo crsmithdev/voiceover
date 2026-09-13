@@ -35,7 +35,7 @@ export interface Report {
   trace: string[];
 }
 
-const CLEAN: EndReason[] = ["goal-closed", "message-left"];
+const CLEAN: EndReason[] = ["goal-closed", "message-left", "caller-hung-up"];
 
 export function buildReport(state: CallState, context: CallContext, endedAt: number): Report {
   return {
@@ -61,6 +61,7 @@ const REASONS: Record<EndReason | "unknown", string> = {
   "hard-limit": "the call was cut at the hard limit",
   "message-left": "a message was left on a voicemail machine",
   "far-end-hung-up": "the other party hung up",
+  "caller-hung-up": "the caller ended the call",
   "dead-line": "the line was dead",
   unknown: "the call ended without a reason being recorded",
 };
@@ -78,6 +79,6 @@ export function summarise(report: Report): string {
     for (const item of report.blocked) lines.push(`  - ${item}`);
   }
   if (report.disclosureLeftOwed) lines.push("WARNING: a direct question about being a machine went unanswered");
-  if (!report.clean) lines.push(`WARNING: the call did not close cleanly, it ended in ${report.phaseAtEnd}`);
+  if (!report.clean) lines.push(`WARNING: the call did not close cleanly, and stopped while ${report.phaseAtEnd}`);
   return lines.join("\n");
 }

@@ -54,6 +54,12 @@ describe("the ordinary loop", () => {
     expect(kinds(actions)).toEqual(["endCall", "writeReport"]);
   });
 
+  test("the caller ending the call is not blamed on the far end", () => {
+    const { state, actions } = run([...answered, { kind: "hangUp", at: 6_000 }], k);
+    expect(state.endReason).toBe("caller-hung-up");
+    expect(kinds(actions).slice(-2)).toEqual(["endCall", "writeReport"]);
+  });
+
   test("nothing happens after the call ends", () => {
     const ended = run([{ kind: "dial", at: 0 }, { kind: "answered", at: 900, by: "dead" }], k).state;
     const { state, actions } = step(ended, { kind: "endOfTurn", at: 2_000 }, k);
