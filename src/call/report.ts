@@ -13,6 +13,12 @@ export interface CallContext {
   goal: string;
   /** What the far end said, as the speech-to-text heard it. */
   heard: string[];
+  /**
+   * What the caller said. It comes from the session rather than from the state
+   * machine: the framework owns playback, so `state.delivered` never fills in a
+   * real call and a report built from it claims the caller said nothing.
+   */
+  said: string[];
   /** Facts the brief did not hold, which the caller deferred (9.4, 9.8). */
   blocked: string[];
 }
@@ -50,7 +56,7 @@ export function buildReport(state: CallState, context: CallContext, endedAt: num
     endedAt,
     durationMs: state.startedAt === null ? null : endedAt - state.startedAt,
     phaseAtEnd: state.phase,
-    said: state.delivered,
+    said: context.said,
     heard: context.heard,
     blocked: context.blocked,
     disclosureLeftOwed: state.owedDisclosure,

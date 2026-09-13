@@ -390,10 +390,16 @@ export function step(prev: CallState, event: Event, k: Constants = constants): S
   const sent = actions.find((a) => a.kind === "sendToBrain");
   if (sent && sent.kind === "sendToBrain") state.pendingSendReason = sent.reason;
 
-  state.trace.push(
-    `${event.at} ${event.kind} ${prev.phase}->${state.phase}` +
-      (actions.length ? ` [${actions.map((a) => a.kind).join(",")}]` : ""),
-  );
+  // A clock that changed nothing is not worth a line. Without this a one minute
+  // call writes a hundred `tick` entries and the trace stops being readable,
+  // which is the one thing 12.3 asks of it.
+  const idle = event.kind === "tick" && prev.phase === state.phase && actions.length === 0;
+  if (!idle) {
+    state.trace.push(
+      `${event.at} ${event.kind} ${prev.phase}->${state.phase}` +
+        (actions.length ? ` [${actions.map((a) => a.kind).join(",")}]` : ""),
+    );
+  }
   return { state, actions };
 }
 

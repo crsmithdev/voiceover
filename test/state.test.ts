@@ -60,6 +60,20 @@ describe("the ordinary loop", () => {
     expect(kinds(actions).slice(-2)).toEqual(["endCall", "writeReport"]);
   });
 
+  test("a clock that changes nothing writes no trace line", () => {
+    const ticks: Event[] = Array.from({ length: 40 }, (_, i) => ({ kind: "tick", at: 4_000 + i * 100 }));
+    const quiet = run([...answered, ...ticks], k);
+    const noisy = run(answered, k);
+    expect(quiet.state.trace).toEqual(noisy.state.trace);
+    expect(quiet.state.trace.length).toBeLessThan(8);
+  });
+
+  test("a clock that does something still writes one", () => {
+    const { state } = run([...answered, { kind: "tick", at: 11_000 }], k);
+    expect(state.trace.at(-1)).toContain("tick");
+    expect(state.trace.at(-1)).toContain("beginClose");
+  });
+
   test("nothing happens after the call ends", () => {
     const ended = run([{ kind: "dial", at: 0 }, { kind: "answered", at: 900, by: "dead" }], k).state;
     const { state, actions } = step(ended, { kind: "endOfTurn", at: 2_000 }, k);

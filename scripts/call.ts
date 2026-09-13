@@ -137,7 +137,7 @@ await engines.session.close?.();
 await room.disconnect();
 await engines.close();
 
-const report = buildReport(state, { number: target, goal: brief.goal, heard, blocked: [] }, Date.now());
+const report = buildReport(state, { number: target, goal: brief.goal, heard, said, blocked: [] }, Date.now());
 const path = await writeReport(report);
 console.log(`\n${summarise(report)}`);
 console.log(`\nheard ${heard.length}, said ${said.length}`);

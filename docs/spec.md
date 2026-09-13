@@ -294,6 +294,12 @@ claim for a fraction of a cent for each call; it is not built (see 18.11).
 11.2 The soft limit starts the close. The caller stops working toward the goal, states where things stand, offers a callback, and ends the call politely. The soft limit never cuts a sentence.
 11.3 The hard limit cuts the call. It is the protection against a fault that will not end.
 11.4 The report is always written, at either limit, and a report from the hard limit says the call was cut. Writing the report must not depend on the brain, because the fault that reached the hard limit can be the brain. A report written from local state is enough.
+
+11.4.1 What the caller said comes from the session, not from the state machine.
+The framework owns playback, so the machine never sees a sentence finish in a
+real call, and a report built from what it saw claims the caller said nothing.
+The first conversation did exactly that: four sentences spoken, zero in the
+report.
 11.5 The caller carries the whole conversation to the brain. The hard limit bounds it: a call of twelve minutes stays well inside the size where the brain stays fast (see Section 15.9).
 11.6 Revision 3 held a running summary that trimmed the conversation. It is cut. It solved a problem the hard limit already prevents, and it changed the part of the prompt that 11.7 wants to stay fixed.
 11.7 The call brief does not change during a call, so it is marked as a prefix that the model provider can cache. Measure the effect on the cost and on the time to the first token.
@@ -538,6 +544,15 @@ voicemail. The script recorded a person, because it had been written to assume
 one. The audio still reached a real telephone through the trunk, which is what
 the test was for, but the lesson is 13.6.1: without an agent session nothing can
 tell a greeting from a hello.
+
+15.15.4 A fourth call, on 13 September 2026, held a real conversation: four
+turns each way over 50 seconds. The caller opened with the line 10.1 asks for,
+asked its question, took the answers and closed. So the loop works end to end on
+a telephone: a person's voice, the transcriber, the brain, the voice, and back.
+Two faults came out of it, both in the record rather than the call. The report
+said nothing was said (11.4.1), and the trace held 88 clock entries and no
+conversation, because the state machine never left `thinking`. Barge-in, the
+disclosure question and an unknown fact were not tried on this call.
 
 15.15.3 A third call was placed on 13 September 2026, this time with the brain,
 the transcriber and the voice in one session. It reached a voicemail box that was

@@ -13,7 +13,7 @@ afterAll(() => rm(dir, { recursive: true, force: true }));
 describe("writeReport", () => {
   test("writes a record and a summary a person can read", async () => {
     const { state } = run([{ kind: "dial", at: 0 }, { kind: "answered", at: 800, by: "dead" }]);
-    const report = buildReport(state, { number: "+14155550100", goal: "book a cleaning", heard: [], blocked: [] }, 800);
+    const report = buildReport(state, { number: "+14155550100", goal: "book a cleaning", heard: [], said: [], blocked: [] }, 800);
 
     const path = await writeReport(report, dir);
     const written = await readdir(dir);

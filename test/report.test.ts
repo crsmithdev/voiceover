@@ -7,6 +7,7 @@ const context = {
   number: "+14155550100",
   goal: "book a cleaning, weekday morning",
   heard: ["Can you spell the last name?"],
+  said: ["Hello, I'm calling for Chris."],
   blocked: [],
 };
 
@@ -29,7 +30,7 @@ describe("buildReport", () => {
     expect(report.outcome).toBe("goal-closed");
     expect(report.clean).toBe(true);
     expect(report.durationMs).toBe(14_000);
-    expect(report.said).toHaveLength(2);
+    expect(report.said).toEqual(["Hello, I'm calling for Chris."]);
   });
 
   test("a cut call reads as not clean and says why", () => {

@@ -136,7 +136,7 @@ if (answered) {
 await room.disconnect();
 
 const { state } = run(events);
-const report = buildReport(state, { number: target, goal: "check the line", heard: [], blocked: [] }, Date.now());
+const report = buildReport(state, { number: target, goal: "check the line", heard: [], said: [LINE], blocked: [] }, Date.now());
 const path = await writeReport(report);
 console.log(`\n${summarise(report)}\n\nreport: ${path}`);
 
