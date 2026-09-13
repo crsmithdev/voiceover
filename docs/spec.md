@@ -222,20 +222,29 @@ reads the audio directly, so it removes the transcription delay from the hot pat
 It runs on the local processor, it has no per-use cost, and it is part of the agent
 framework.
 
-8.5 The memory footprint of the audio v1-mini model is not published. Revision 2
+8.5 **The local model needs the framework's worker model to exist at all.** The
+runner that serves it is registered inside the framework's `worker.js`, and the
+executor that calls it is built by the worker. A session started by a plain
+script gets neither, and the detector does not fail: it pins every prediction to
+1.0 and turns commit on a fixed delay, which is the method 8.2 rejects. The
+native binding is present and loadable; it is the executor that is missing.
+Measured on 13 September 2026 against `@livekit/agents` 1.8.1. So the caller
+either runs as a framework worker or gives up 8.4 (see 18.14).
+
+8.6 The memory footprint of the audio v1-mini model is not published. Revision 2
 gave a figure that belongs to the older text model. Measure it.
 
-8.6 The model needs a voice detector under it, with a silence floor of at least
+8.7 The model needs a voice detector under it, with a silence floor of at least
 250 milliseconds. This is the same voice detector that feeds 7.2.1. There is one
 detector, not two, and a change to its floor moves both the end-of-turn behavior
 and the interruption behavior. Tune it as one thing.
 
-8.7 The published false-cutoff rates of 9.9 percent at 300 milliseconds and 4.5
+8.8 The published false-cutoff rates of 9.9 percent at 300 milliseconds and 4.5
 percent at 600 milliseconds belong to the full v1 model, which runs only on the
 vendor cloud. They are not a promise for v1-mini. Measure v1-mini on
 telephone-grade audio.
 
-8.8 The code is Apache-2.0. The weights are under the vendor model licence.
+8.9 The code is Apache-2.0. The weights are under the vendor model licence.
 
 ## 9. Safe behavior on an unknown
 
@@ -530,6 +539,15 @@ one. The audio still reached a real telephone through the trunk, which is what
 the test was for, but the lesson is 13.6.1: without an agent session nothing can
 tell a greeting from a hello.
 
+15.15.3 A third call was placed on 13 September 2026, this time with the brain,
+the transcriber and the voice in one session. It reached a voicemail box that was
+full, which announced itself and hung up after about five seconds. Two things came
+out of it. The transcriber read real telephone audio correctly for the first time:
+it wrote back "Sorry, the mailbox is full and there is not enough space to leave a
+message." And the local end-of-turn model announced that it was not running at
+all, which is 8.5. The conversation itself is still untested, because nothing on
+the other end ever took a turn.
+
 15.15.2 The call was placed again and answered. It ran 13 seconds end to end and
 the process exited on its own. Chris heard the sentence and it was clear. His one
 remark was about the voice itself: it works, and it could be better (see 18.12).
@@ -600,9 +618,9 @@ dependency that can move without notice.
 | Interruption, least words | **1** | framework says 0; raised on purpose | 7.2.3 |
 | False interruption timeout | 2000 ms | `turnHandling.interruption.falseInterruptionTimeout` | 7.2.4 |
 | Resume after a false interruption | On | `turnHandling.interruption.resumeFalseInterruption` | 7.2.5 |
-| Endpointing, least delay | 500 ms | `turnHandling.endpointing.minDelay` | 8.6 |
-| Endpointing, most delay | 3000 ms | `turnHandling.endpointing.maxDelay` | 8.6 |
-| Voice detector silence floor | 200 ms | the detector's own `MIN_SILENCE_DURATION_MS` | 8.6 |
+| Endpointing, least delay | 500 ms | `turnHandling.endpointing.minDelay` | 8.7 |
+| Endpointing, most delay | 3000 ms | `turnHandling.endpointing.maxDelay` | 8.7 |
+| Voice detector silence floor | 200 ms | the detector's own `MIN_SILENCE_DURATION_MS` | 8.7 |
 | Detector sample rate | 16 kHz | the detector's own `DEFAULT_SAMPLE_RATE` | 12.5 |
 | Opening line that says the caller is an assistant | On | this product | 10.1 |
 | Audio recording, with its announcement | Off | this product | 10.6 |
@@ -643,6 +661,14 @@ installed, not a voice anyone picked, and Chris found it usable but not good on 
 real line. The voice sits behind an interface, so this is a swap and not a
 rewrite. Judge candidates through the telephone band of 12.5, because a voice
 that is pleasant at 22 kHz can lose what makes it pleasant at 8.
+18.14 **Run the caller as a framework worker, or give up the local end-of-turn
+model.** 8.5 is the finding. A worker is a daemon that receives a job and joins a
+room, so the dial becomes a separate step that creates the room and dispatches
+to it. That is the framework's own shape and it restores 8.4. The alternative is
+a plain script and fixed-delay endpointing, which 8.2 calls not good enough.
+Decide before the conversation is tuned, because every timing measurement taken
+in the degraded mode would have to be taken again.
+
 18.13 **Decided.** The pipeline uses the framework's `SentenceTokenizer`, because
 the TTS stream adapter takes one and a second rule inside the same call would
 split the same reply two ways. `src/speech/sentences.ts` stays as the benchmark's
