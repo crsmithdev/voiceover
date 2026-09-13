@@ -62,16 +62,18 @@ export type Action =
   | { kind: "writeReport"; reason: EndReason };
 
 /**
- * Spec Section 17. Every value is a constant, not a setting. The four marked
- * provisional must be replaced with the framework's own defaults, and written
- * down when they are read (17.2).
+ * Spec Section 17. Every value is a constant, not a setting.
+ *
+ * The three interruption values were read from @livekit/agents 1.8.1 on
+ * 12 September 2026, under `turnHandling.interruption`, and written down here
+ * because 17.2 says an unrecorded default is a dependency that can move.
  */
 export interface Constants {
-  /** 7.2.2 provisional */
+  /** 7.2.2 — framework `interruption.minDuration` */
   minInterruptionMs: number;
-  /** 7.2.3 provisional */
+  /** 7.2.3 — framework `interruption.minWords`, raised on purpose, see below */
   minInterruptionWords: number;
-  /** 7.2.4 provisional */
+  /** 7.2.4 — framework `interruption.falseInterruptionTimeout` */
   falseInterruptionMs: number;
   /** 11.2 */
   softLimitMs: number;
@@ -81,6 +83,12 @@ export interface Constants {
 
 export const constants: Constants = {
   minInterruptionMs: 500,
+  /**
+   * The framework default is 0, which lets sound alone stop the agent. Spec 7.4
+   * makes the word test the defence against a speakerphone feeding the agent
+   * its own voice, and that defence needs at least one word. So this is a
+   * deliberate departure from the default, not a copy of it.
+   */
   minInterruptionWords: 1,
   falseInterruptionMs: 2000,
   softLimitMs: 8 * 60_000,

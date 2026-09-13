@@ -371,7 +371,14 @@ interruption mechanism of Section 7 and the detector of Section 8. This product
 configures these. It does not build them. What this product builds is Section 6,
 Section 9, the caller layer, and the report.
 
-13.7 Nothing but the brain makes a paid network call on the hot path, except the
+13.7 The agent framework is `@livekit/agents` for Node, version 1.8.1. It carries
+everything Sections 7 and 8 assume: the audio end-of-turn detector as
+`turn-detector-v1-mini` with a local transport, the interruption order of 7.2
+including the false interruption and the resume, the tones of a menu, and the
+classification of what answered. So this product stays in TypeScript and adds no
+second language beyond the two Python speech workers it reuses.
+
+13.8 Nothing but the brain makes a paid network call on the hot path, except the
 media hop through LiveKit Cloud that 13.5 accepts. Measure that hop as part of the
 end-to-end time (15.14).
 
@@ -544,27 +551,44 @@ workers or shares the bridge's, before a call and a voice session can overlap
 
 ## 17. Constants
 
-17.1 Every value below is a constant at the framework default, not a setting.
-Revision 3 made twelve of them settings and then said each default was a guess.
-A value becomes a setting when a measurement earns it, and not before.
+17.1 Every value below is a constant, not a setting. Revision 3 made twelve of
+them settings and then said each default was a guess. A value becomes a setting
+when a measurement earns it, and not before.
 
-| Constant | Value | Section |
-|---|---|---|
-| Voice detector silence floor | 250 ms | 8.6 |
-| Endpointing delay | Framework default | 8.6 |
-| End-of-turn threshold | Framework default | 8.4 |
-| Minimum length of an interruption | Framework default | 7.2.2 |
-| Minimum words of an interruption | Framework default | 7.2.3 |
-| False interruption timeout | Framework default | 7.2.4 |
-| Resume after a false interruption | On | 7.2.5 |
-| Opening line that says the caller is an assistant | On | 10.1 |
-| Audio recording, with its announcement | Off | 10.6 |
-| Soft call limit | 8 minutes | 11.2 |
-| Hard call limit | 12 minutes | 11.3 |
-| Calls in an hour | To decide | 16.5 |
+17.2 The framework values were read from `@livekit/agents` 1.8.1 on 12 September
+2026 and are written down here, because a default that is not written down is a
+dependency that can move without notice.
 
-17.2 Record the framework default for each row when it is read from the framework.
-A default that is not written down is a dependency that can move without notice.
+| Constant | Value | Source | Section |
+|---|---|---|---|
+| Interruption, least length | 500 ms | `turnHandling.interruption.minDuration` | 7.2.2 |
+| Interruption, least words | **1** | framework says 0; raised on purpose | 7.2.3 |
+| False interruption timeout | 2000 ms | `turnHandling.interruption.falseInterruptionTimeout` | 7.2.4 |
+| Resume after a false interruption | On | `turnHandling.interruption.resumeFalseInterruption` | 7.2.5 |
+| Endpointing, least delay | 500 ms | `turnHandling.endpointing.minDelay` | 8.6 |
+| Endpointing, most delay | 3000 ms | `turnHandling.endpointing.maxDelay` | 8.6 |
+| Voice detector silence floor | 200 ms | the detector's own `MIN_SILENCE_DURATION_MS` | 8.6 |
+| Detector sample rate | 16 kHz | the detector's own `DEFAULT_SAMPLE_RATE` | 12.5 |
+| Opening line that says the caller is an assistant | On | this product | 10.1 |
+| Audio recording, with its announcement | Off | this product | 10.6 |
+| Soft call limit | 8 minutes | this product | 11.2 |
+| Hard call limit | 12 minutes | this product | 11.3 |
+| Calls in an hour | To decide | this product | 16.5 |
+
+17.3 **One departure from a default, on purpose.** The framework asks for zero
+words before an interruption counts, so sound alone stops the agent. Clause 7.4
+makes the word test the defence against a speakerphone at the other end feeding
+the agent its own voice. That defence needs at least one word, so this product
+sets one. Revisit it after a real call: one word also delays a genuine
+interruption until the speech-to-text produces something.
+
+17.4 Two figures disagree between the vendor's prose and its code. The
+documentation says the detector needs a voice detector with a silence floor of
+250 milliseconds; the code says 200. The table follows the code.
+
+17.5 The flat options this product first read — `minInterruptionDuration`,
+`minEndpointingDelay` and their neighbours — are deprecated in 1.8.1 in favour of
+the `turnHandling` object. Use the object.
 
 ## 18. Open points
 
