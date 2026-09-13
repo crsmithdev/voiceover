@@ -523,6 +523,10 @@ one. The audio still reached a real telephone through the trunk, which is what
 the test was for, but the lesson is 13.6.1: without an agent session nothing can
 tell a greeting from a hello.
 
+15.15.2 The call was placed again and answered. It ran 13 seconds end to end and
+the process exited on its own. Chris heard the sentence and it was clear. His one
+remark was about the voice itself: it works, and it could be better (see 18.12).
+
 15.16 **Still to measure, in this order.** The whole path, end to end, on a real telephone leg. The
 transport time both ways. The false-cutoff rate of v1-mini on telephone-grade
 audio. The memory footprint of v1-mini. The time to the first token on a direct
@@ -627,3 +631,12 @@ the `turnHandling` object. Use the object.
 18.9 Find out why the telephone account of the earlier version was closed, before the new account is opened on the same identity.
 18.10 Decide whether the caller starts its own speech workers or shares the voice bridge's (see Section 16.10).
 18.11 Decide whether a carrier lookup checks the brief's claim about a line before the dialing path believes it (see 10.12).
+18.12 Choose a better voice. `en_US-lessac-medium` is the voice the bridge
+installed, not a voice anyone picked, and Chris found it usable but not good on a
+real line. The voice sits behind an interface, so this is a swap and not a
+rewrite. Judge candidates through the telephone band of 12.5, because a voice
+that is pleasant at 22 kHz can lose what makes it pleasant at 8.
+18.13 Decide whether the product keeps its own sentence rule or uses the
+framework's `SentenceTokenizer`. `src/speech/sentences.ts` measured the first
+sentence in 15.3 and is tested, but the TTS stream adapter carries a tokenizer of
+its own, and two rules that disagree would split differently in the same call.
