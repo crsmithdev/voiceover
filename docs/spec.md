@@ -370,7 +370,14 @@ voicemail machine, a menu, or a dead line answered, and it supplies the
 interruption mechanism of Section 7 and the detector of Section 8. This product
 configures these. It does not build them.
 
-13.6.1 One qualifier, learned on the first call. The classification of who
+13.6.1 Both local engines reach the framework through its own `StreamAdapter`.
+Each worker takes a file and returns a result, so each adapter declares itself
+non-streaming, and the framework puts a voice detector in front of the
+speech-to-text and a sentence rule in front of the voice. This is the supported
+way to use an engine that cannot stream, and it means neither adapter carries
+timing logic of its own.
+
+13.6.2 One qualifier, learned on the first call. The classification of who
 answered belongs to the *agent session*, not to the act of dialling. A script
 that only creates a SIP participant gets "something picked up" and nothing more.
 So any code path that dials without an agent session must record the answer as
@@ -636,7 +643,8 @@ installed, not a voice anyone picked, and Chris found it usable but not good on 
 real line. The voice sits behind an interface, so this is a swap and not a
 rewrite. Judge candidates through the telephone band of 12.5, because a voice
 that is pleasant at 22 kHz can lose what makes it pleasant at 8.
-18.13 Decide whether the product keeps its own sentence rule or uses the
-framework's `SentenceTokenizer`. `src/speech/sentences.ts` measured the first
-sentence in 15.3 and is tested, but the TTS stream adapter carries a tokenizer of
-its own, and two rules that disagree would split differently in the same call.
+18.13 **Decided.** The pipeline uses the framework's `SentenceTokenizer`, because
+the TTS stream adapter takes one and a second rule inside the same call would
+split the same reply two ways. `src/speech/sentences.ts` stays as the benchmark's
+rule, which is what 15.3 was measured with, and is not wired into a call. If the
+framework's rule splits very differently, 15.3 needs measuring again with it.

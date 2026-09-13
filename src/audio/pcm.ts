@@ -58,3 +58,26 @@ export function frameAt(samples: Int16Array, at: number, size: number): Int16Arr
   out.set(samples.subarray(at, Math.min(at + size, samples.length)));
   return out;
 }
+
+/** A minimal RIFF header around mono 16 bit samples, for a worker that reads files. */
+export function encodeWav(samples: Int16Array, sampleRate: number): Uint8Array {
+  const bytes = new Uint8Array(44 + samples.byteLength);
+  const view = new DataView(bytes.buffer);
+  const ascii = (at: number, text: string) => {
+    for (let i = 0; i < text.length; i++) bytes[at + i] = text.charCodeAt(i);
+  };
+  ascii(0, "RIFF");
+  view.setUint32(4, 36 + samples.byteLength, true);
+  ascii(8, "WAVEfmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  ascii(36, "data");
+  view.setUint32(40, samples.byteLength, true);
+  for (let i = 0; i < samples.length; i++) view.setInt16(44 + i * 2, samples[i] as number, true);
+  return bytes;
+}
