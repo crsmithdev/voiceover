@@ -2,7 +2,7 @@
 
 Written in ASD-STE100 Simplified Technical English.
 Feature level only. No code.
-Date: 12 September 2026. Fifth revision.
+Date: 13 September 2026. Sixth revision.
 
 Source of the first revision: Google Doc
 `Outbound Call Agent — Product Specification (ASD-STE100)`,
@@ -234,10 +234,22 @@ either runs as a framework worker or gives up 8.4 (see 18.14).
 8.6 The memory footprint of the audio v1-mini model is not published. Revision 2
 gave a figure that belongs to the older text model. Measure it.
 
-8.7 The model needs a voice detector under it, with a silence floor of at least
-250 milliseconds. This is the same voice detector that feeds 7.2.1. There is one
-detector, not two, and a change to its floor moves both the end-of-turn behavior
-and the interruption behavior. Tune it as one thing.
+8.7 **Correction. One detector cannot answer two questions.** Revision 5 said
+there was one detector and it should be tuned as one thing. A road test of the
+voice bridge disproved that. Opening a recording must be quick and forgiving, or
+the first syllable of the reply is lost. Stopping the agent mid-sentence must be
+slow and sure, or a passing lorry costs a sentence. So there are two: a low level
+with a short onset starts the recording, and a higher level held for longer stops
+the playback. The bridge uses 0.02 with a 50 millisecond onset against 0.05 held
+for 400.
+
+8.7.1 The barge-in detector tolerates a dip. Natural speech falls below the level
+between syllables, so a detector that wants unbroken sound never fires on a short
+sentence and fires only on long ones. The bridge allows a gap of 200
+milliseconds inside the count.
+
+8.7.2 On a telephone leg the lorry is the echo path and the line noise. The word
+test of 7.2.3 and the two thresholds here do the same job from two sides.
 
 8.8 The published false-cutoff rates of 9.9 percent at 300 milliseconds and 4.5
 percent at 600 milliseconds belong to the full v1 model, which runs only on the
@@ -567,6 +579,17 @@ the other end ever took a turn.
 the process exited on its own. Chris heard the sentence and it was clear. His one
 remark was about the voice itself: it works, and it could be better (see 18.12).
 
+15.15.5 **A pause is a setting, not a cost.** The voice bridge reported 1.8
+seconds of "transcription" when 1.5 of it was its own end-of-turn pause, which
+made the engine look seven times slower than it is. Every measurement of a turn
+starts at the real end of speech, not at the moment the system notices it, and
+the pause is reported on its own line. The budget in 3.6 separates them; the
+measurements in 15.16 must too.
+
+15.15.6 Count what a barge-in turned out to be: speech, a command, or nothing.
+"Nothing" is the false interruption of 7.2.4, and it is the one that costs a
+sentence for no reason. The bridge counts these and this product does not.
+
 15.16 **Still to measure, in this order.** The whole path, end to end, on a real telephone leg. The
 transport time both ways. The false-cutoff rate of v1-mini on telephone-grade
 audio. The memory footprint of v1-mini. The time to the first token on a direct
@@ -586,10 +609,16 @@ Section 12.3 proves it.
 16.3 The v1-mini detector has no published numbers of its own.
 
 16.4 **The host is a desktop in a house.** It sleeps. Windows restarts it. The
-network drops. The GPU can be busy. None of this has a defined behavior yet, and
-a worker that dies leaves a real person listening to silence. The product must
-close the telephone leg when the worker dies, and it must tell Chris that the call
-ended this way.
+network drops. The GPU can be busy. A worker that dies leaves a real person
+listening to silence.
+
+16.4.1 **Decided: a dead-air watchdog.** If the agent produces no audio and no
+events for a short window, the call is ended from whichever side is still alive
+and the report is written from the last known state. The other party gets a clean
+disconnect rather than an open line, and Chris gets a report that says the call
+died rather than no report at all. The same watchdog catches a brain that hangs,
+not only a host that dies. The carrier's own limit is a backstop and not an
+answer: twelve minutes of silence on a stranger's telephone is a failure.
 
 16.5 **The limits do not cap the rate.** The soft and hard limits bound one call.
 The account spend limit bounds the month. Nothing bounds how many calls happen in
@@ -661,28 +690,61 @@ the `turnHandling` object. Use the object.
 ## 18. Open points
 
 18.1 The speech-to-text model and the voice are settled by reuse (2.7). `small.en` survives the codec (15.10). What is open is whether it survives real speech with real noise, and whether a larger model earns its cost there.
-18.2 Decide how Chris starts a call and gives the call brief.
-18.3 Decide where a call brief lives, who writes one, and what checks it before a call.
+18.2 **Decided.** A full local user interface composes the brief and starts the
+call. HTML mockups come before any of it is built.
+18.3 **Decided.** The brief lives in the user interface and is not stored. It is
+composed, shown back, and passed to the call. Nothing about a brief outlives the
+call it was written for.
 18.4 Confirm the caller identification level that Telnyx gives a pay-as-you-go account. The number was bought from Telnyx on 12 September 2026, which is the condition for the highest level, but the level itself is unconfirmed.
-18.5 Get a legal check before the caller dials a mobile or a home number, and cite the recording statute in 10.8.
-18.6 Decide how long a call transcript lives, and where the report goes. A report is written to `~/.caller/reports` today, as JSON beside a readable summary. That location is provisional.
+18.5 **In hand.** The rule in 10.10 rests on secondary sources. The February 2024
+FCC declaratory ruling, the TCPA text it reads, and the California recording
+statute are to be read directly and written up, so the rule rests on a citation
+rather than on a summary of a vendor's marketing page. That write-up is not legal
+advice and does not pretend to be.
+18.6 **Decided.** A report stays in `~/.caller/reports`, as JSON beside a
+readable summary, and the user interface lists them. A report older than 30 days
+is deleted. That gives 10.9 a rule rather than an intention: the other party's
+words do not accumulate on a desktop forever.
 18.7 Other users are out of scope. Revisit only when a second user exists.
-18.8 Keep and repair the test orchestrator and personalities of the earlier version, or delete them.
+18.8 **Decided.** Keep the test personalities of the earlier version and delete
+its orchestrator. The personalities are content that 12.9 needs whatever shape
+the tests take. The orchestrator is the part 2.4 says failed and 12.8 has already
+demoted.
 18.9 Find out why the telephone account of the earlier version was closed, before the new account is opened on the same identity.
-18.10 Decide whether the caller starts its own speech workers or shares the voice bridge's (see Section 16.10).
-18.11 Decide whether a carrier lookup checks the brief's claim about a line before the dialing path believes it (see 10.12).
-18.12 Choose a better voice. `en_US-lessac-medium` is the voice the bridge
-installed, not a voice anyone picked, and Chris found it usable but not good on a
-real line. The voice sits behind an interface, so this is a swap and not a
-rewrite. Judge candidates through the telephone band of 12.5, because a voice
-that is pleasant at 22 kHz can lose what makes it pleasant at 8.
-18.14 **Run the caller as a framework worker, or give up the local end-of-turn
-model.** 8.5 is the finding. A worker is a daemon that receives a job and joins a
-room, so the dial becomes a separate step that creates the room and dispatches
-to it. That is the framework's own shape and it restores 8.4. The alternative is
-a plain script and fixed-delay endpointing, which 8.2 calls not good enough.
-Decide before the conversation is tuned, because every timing measurement taken
-in the degraded mode would have to be taken again.
+18.10 **Decided.** The caller starts its own speech engines. Two copies cost
+about 3.6 gigabytes of a 12 gigabyte card, which is spare. A call then never
+depends on the bridge running, and neither product can break the other by
+restarting.
+18.11 **Decided.** No carrier lookup. The dialing path believes what the user
+interface says a line is. So the gate of 10.10 is as good as the typing, and a
+mistyped line type is the fault it cannot catch. Revisit if a wrong number is
+ever dialled.
+18.12 **Decided.** Kokoro on the card, and not the voice the bridge speaks with.
+The bridge measured Kokoro at 121 to 164 milliseconds for a first sentence
+against Piper's hundred, for about 800 megabytes of the card, so the better voice
+costs nothing in the number that matters. All 54 voices sit in one pack, so the
+choice is a name. Chris picks from candidates rendered through the telephone band
+of 12.5, because a voice that is pleasant at 22 kHz can lose what makes it
+pleasant at 8.
+
+18.12.1 Kokoro needs its own virtual environment. Its onnxruntime wants the CUDA
+13 wheels and ctranslate2, which carries the speech-to-text, wants the CUDA 12
+ones, and both unpack into the same directory.
+
+18.12.2 The caller does not speak with the bridge's voice. One voice for the
+assistant that talks to Chris and another for the one that talks for him keeps it
+clear whose voice is whose.
+18.14 **Decided. The caller runs as a framework worker.** 8.5 is the finding: a
+standalone session never loads the local end-of-turn model and commits turns on a
+clock instead. A worker is a daemon that receives a job and joins a room, so the
+dial becomes a separate step that creates the room and dispatches to it. That is
+the framework's own shape and it restores 8.4.
+
+18.14.1 The bridge ships a fixed 1.5 second pause and a road test of it felt
+good, so a clock is not unusable in itself. The judgement is that a stranger on a
+business line is less patient than Chris in his own car, and that a model reading
+the words and the prosody beats a clock on a line where the other party is not
+expecting a machine.
 
 18.13 **Decided.** The pipeline uses the framework's `SentenceTokenizer`, because
 the TTS stream adapter takes one and a second rule inside the same call would
