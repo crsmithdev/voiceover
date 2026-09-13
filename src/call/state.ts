@@ -105,6 +105,8 @@ export interface CallState {
   sentenceReason: SendReason | null;
   /** 11.2 the soft limit fired and the close waits for the sentence to finish. */
   pendingClose: boolean;
+  /** The close is under way, so the next sentence to finish ends the call. */
+  closeStarted: boolean;
   /** 6.3 hold music must not satisfy any detector. */
   holdMusic: boolean;
   /** 6.3 a voicemail greeting is a monologue: turn-taking is off until the beep. */
@@ -126,6 +128,7 @@ export function initial(): CallState {
     pendingSendReason: null,
     sentenceReason: null,
     pendingClose: false,
+    closeStarted: false,
     holdMusic: false,
     turnTakingOff: false,
     endReason: null,
@@ -233,6 +236,8 @@ export function step(prev: CallState, event: Event, k: Constants = constants): S
       }
       if (prev.phase !== "listening") break;
       if (state.pendingClose) {
+        state.pendingClose = false;
+        state.closeStarted = true;
         actions.push({ kind: "beginClose" });
         to("closing");
         break;
@@ -261,16 +266,18 @@ export function step(prev: CallState, event: Event, k: Constants = constants): S
         to("ended");
         break;
       }
-      if (state.pendingClose) {
-        // 11.2 the soft limit waited for the sentence rather than cutting it.
-        actions.push({ kind: "beginClose" });
-        to("closing");
-        break;
-      }
-      if (prev.phase === "closing") {
+      if (prev.closeStarted) {
         state.endReason = "goal-closed";
         actions.push({ kind: "endCall", reason: "goal-closed" }, { kind: "writeReport", reason: "goal-closed" });
         to("ended");
+        break;
+      }
+      if (state.pendingClose) {
+        // 11.2 the soft limit waited for the sentence rather than cutting it.
+        state.pendingClose = false;
+        state.closeStarted = true;
+        actions.push({ kind: "beginClose" });
+        to("closing");
         break;
       }
       to("listening");
@@ -314,6 +321,8 @@ export function step(prev: CallState, event: Event, k: Constants = constants): S
       if (elapsed >= k.softLimitMs && !state.pendingClose) {
         state.pendingClose = true;
         if (prev.phase === "listening" || prev.phase === "thinking") {
+          state.pendingClose = false;
+          state.closeStarted = true;
           actions.push({ kind: "beginClose" });
           to("closing");
         }

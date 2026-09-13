@@ -172,6 +172,22 @@ describe("the rows of 6.3", () => {
     expect(actions.at(-1)).toEqual({ kind: "beginClose" });
   });
 
+  test("the closing sentence ends the call, and does not restart the close", () => {
+    const { state, actions } = run(
+      [
+        ...answered,
+        { kind: "tick", at: 11_000 },
+        { kind: "sentenceReady", at: 11_400, text: "Thanks very much, goodbye." },
+        { kind: "playbackFinished", at: 13_000 },
+      ],
+      k,
+    );
+    expect(state.phase).toBe("ended");
+    expect(state.endReason).toBe("goal-closed");
+    expect(kinds(actions).filter((a) => a === "beginClose")).toHaveLength(1);
+    expect(kinds(actions).slice(-2)).toEqual(["endCall", "writeReport"]);
+  });
+
   test("the soft limit closes at once when nobody is speaking", () => {
     const { state, actions } = run([...answered, { kind: "tick", at: 11_000 }], k);
     expect(state.phase).toBe("closing");

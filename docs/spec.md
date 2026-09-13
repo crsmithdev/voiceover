@@ -264,7 +264,20 @@ brief does not hold (see Section 12.9).
 10.7 If recording is turned on, the caller says in its first sentence that it records the call. The two always move together.
 10.8 The reason for 10.6 and 10.7 is the law of California, which asks every party to a private conversation to agree before it is recorded. The exact statute is not cited here and this document is not legal advice (see Section 18.5).
 10.9 The transcript holds what the other party said, which can include their own personal data. Decide how long a transcript lives before the first real call (see Section 18.6).
-10.10 The first calls go to the published line of a business. The dialing path classifies the number before it dials, and refuses a number that is not a business line, until the check in 18.5 is done. An intention is not enough.
+10.10 The dialing path decides what may be dialled, before it dials. It fails
+closed, in this order: a number Chris owns passes; a number the brief calls a
+published business line passes; everything else is refused until the check in
+18.5 is done. A brief that does not say what kind of line it is gets a refusal,
+so silence is not permission.
+
+10.11 This rule is a choice, not a law. It comes from the reading in Section 9 of
+the red team review, where an artificial voice on a residential or wireless line
+carries obligations that a business line does not. The sources were secondary.
+Revisit it when 18.5 is answered.
+
+10.12 The product cannot tell a business line from a home line on its own. The
+brief asserts it and the product believes it. A carrier lookup could check that
+claim for a fraction of a cent for each call; it is not built (see 18.11).
 
 ## 11. Call limits
 
@@ -560,8 +573,9 @@ A default that is not written down is a dependency that can move without notice.
 18.3 Decide where a call brief lives, who writes one, and what checks it before a call.
 18.4 Confirm the caller identification level that Telnyx gives a pay-as-you-go account. The number was bought from Telnyx on 12 September 2026, which is the condition for the highest level, but the level itself is unconfirmed.
 18.5 Get a legal check before the caller dials a mobile or a home number, and cite the recording statute in 10.8.
-18.6 Decide how long a call transcript lives, and where the report goes.
+18.6 Decide how long a call transcript lives, and where the report goes. A report is written to `~/.caller/reports` today, as JSON beside a readable summary. That location is provisional.
 18.7 Other users are out of scope. Revisit only when a second user exists.
 18.8 Keep and repair the test orchestrator and personalities of the earlier version, or delete them.
 18.9 Find out why the telephone account of the earlier version was closed, before the new account is opened on the same identity.
 18.10 Decide whether the caller starts its own speech workers or shares the voice bridge's (see Section 16.10).
+18.11 Decide whether a carrier lookup checks the brief's claim about a line before the dialing path believes it (see 10.12).
