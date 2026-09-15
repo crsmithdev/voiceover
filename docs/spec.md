@@ -695,6 +695,20 @@ call. HTML mockups come before any of it is built.
 18.3 **Decided.** The brief lives in the user interface and is not stored. It is
 composed, shown back, and passed to the call. Nothing about a brief outlives the
 call it was written for.
+
+18.2.1 **Decided.** The mockups live in the repository, at `design/`. The
+clickable prototype and the canvas sources are tracked. The canvas editor
+bundle, `design/caller-local-ui.html`, is a build output and is ignored,
+because the `design` skill regenerates it from the same sources.
+
+18.3.1 **Decided.** The brief holds key-value facts and one optional free-text
+background field. Key-value is the primary shape, because Section 9 must be
+decidable and 9.5 marks a single field releasable: you cannot mark half a
+sentence. The background field carries the nuance that has no field shape, such
+as "travelling the first week of the month". It is a fact of the brief under
+9.2, so the caller may state it; it is never the place for a number that 9.5
+governs.
+
 18.4 Confirm the caller identification level that Telnyx gives a pay-as-you-go account. The number was bought from Telnyx on 12 September 2026, which is the condition for the highest level, but the level itself is unconfirmed.
 18.5 **In hand.** The rule in 10.10 rests on secondary sources. The February 2024
 FCC declaratory ruling, the TCPA text it reads, and the California recording

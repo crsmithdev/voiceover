@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+  :root { color-scheme: dark; --bg:#0e1113; --fg:#e8e6e3; --dim:#8a9199; --line:#22282c;
+          --live:#4ec9a7; --warn:#e0796b; --warnbg:#7a3b2e; --sunk:#12171a; --them:#171c20; --us:#1d2a33; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui,-apple-system,sans-serif; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  header { display:flex; align-items:center; gap:10px; padding:14px 24px; border-bottom:1px solid var(--line); flex:none; }
+  #dot { width:10px; height:10px; border-radius:50%; background:#555; flex:none; }
+  #dot.live { background:var(--live); box-shadow:0 0 10px var(--live); }
+  #phase { color:var(--dim); font-size:14px; }
+  .grow { flex-grow:1; }
+  .tabs { display:flex; gap:6px; }
+  .tab { border:1px solid var(--line); border-radius:10px; padding:7px 13px; font-size:14px; color:var(--dim);
+         cursor:pointer; background:none; font-family:inherit; }
+  .tab.on { color:var(--fg); background:var(--us); }
+  main { flex:1; min-height:0; display:flex; gap:24px; padding:24px; }
+  .col { display:flex; flex-direction:column; gap:20px; min-width:0; }
+  .side { width:340px; flex:none; }
+  .fill { flex-grow:1; }
+  label { font-size:13px; color:var(--dim); }
+  .field { background:var(--sunk); border:1px solid var(--line); border-radius:10px; padding:11px 13px;
+           color:var(--fg); font:inherit; width:100%; }
+  textarea.field { resize:vertical; min-height:74px; }
+  .pair { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
+  .pair .field:last-child { grid-column:span 2; }
+  .card { border:1px solid var(--line); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .card.warn { border-color:var(--warnbg); }
+  .row { display:flex; justify-content:space-between; gap:12px; }
+  .row .dim { color:var(--dim); }
+  .check { display:flex; gap:10px; align-items:flex-start; }
+  .bead { width:8px; height:8px; border-radius:50%; background:var(--live); margin-top:8px; flex:none; }
+  button.go { background:var(--us); border:1px solid var(--live); border-radius:10px; padding:14px 24px;
+              font:inherit; font-weight:600; color:var(--fg); cursor:pointer; display:flex; gap:10px;
+              align-items:center; justify-content:center; }
+  button.hang { background:var(--warnbg); border:0; border-radius:10px; padding:16px; font:inherit;
+                font-weight:600; color:#fff; cursor:pointer; }
+  button.ghost { background:none; border:1px solid var(--line); border-radius:10px; padding:11px 13px;
+                 font:inherit; font-size:15px; color:var(--fg); cursor:pointer; }
+  button:disabled { opacity:.45; cursor:default; }
+  .log { display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex-grow:1; padding-right:4px; }
+  .line { max-width:82%; padding:9px 12px; border-radius:14px; white-space:pre-wrap; }
+  .them { align-self:flex-start; background:var(--them); border-bottom-left-radius:4px; }
+  .us   { align-self:flex-end;   background:var(--us);   border-bottom-right-radius:4px; }
+  .note { align-self:center; color:var(--dim); font-size:13px; }
+  .good { align-self:center; border:1px solid var(--live); color:var(--live); border-radius:999px;
+          padding:4px 12px; font-size:13px; }
+  .pill { border:1px solid var(--line); border-radius:999px; padding:4px 12px; font-size:13px; color:var(--dim); }
+  .persona { border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:15px;
+             cursor:pointer; background:none; color:var(--fg); font-family:inherit; text-align:left; }
+  .persona.on { border-color:var(--live); background:var(--sunk); }
+  .meter { flex-grow:1; height:6px; border-radius:3px; background:var(--them); overflow:hidden; }
+  .meter > i { display:block; height:6px; width:0; background:var(--live); transition:width .12s linear; }
+  .meter.grey > i { background:var(--dim); }
+  .provokes { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; }
+  #personas { overflow-y:auto; flex:1 1 auto; min-height:120px; padding-right:4px; }
+  .hidden { display:none !important; }
+  h2 { font-size:20px; margin:0; }
+  .sub { color:var(--dim); font-size:14px; }
+
+  a { color:#4ec9a7; } a:hover { color:#7fdcc0; }
+  .frame { height:860px; display:flex; flex-direction:column; }
+  </style>
+</helmet>
+<div class="frame">
+<header>
+  <span id="dot" class=""></span>
+  <strong>Caller</strong>
+  <span id="phase">ready</span>
+  <span class="grow"></span>
+  <div class="tabs"><span class="tab on">New call</span><span class="tab ">Rehearsal</span></div>
+</header>
+<main>
+  <div class="col fill">
+    <div class="col" style="gap:8px">
+      <label for="goal">Goal</label>
+      <textarea class="field" id="goal">Book a cleaning, any weekday morning in the next three weeks, and confirm the time.</textarea>
+    </div>
+
+    <div class="col" style="gap:8px">
+      <label>Facts it may state — everything else it does not know</label>
+      <div class="col" style="gap:6px" id="facts">
+        <div class="pair"><input class="field" value="existing patient"><input class="field" value="yes, last cleaning was March"></div>
+        <div class="pair"><input class="field" value="prefers"><input class="field" value="Tuesday or Thursday morning"></div>
+        <div class="pair"><input class="field" value="reachable"><input class="field" value="by text"></div>
+      </div>
+      <button class="ghost" id="addFact" style="border-style:dashed; color:var(--dim)">+ add a fact</button>
+    </div>
+
+    <div class="col" style="gap:8px">
+      <label>Releasable if asked</label>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+        <button class="persona" data-rel>date of birth</button>
+        <button class="persona" data-rel>insurance member id</button>
+        <span class="sub" id="relNote">none selected — it withholds all of them</span>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px">
+      <div class="col fill" style="gap:8px">
+        <label for="num">Number</label>
+        <input class="field mono" id="num" value="+1 415 555 0123">
+      </div>
+      <div class="col" style="gap:8px; width:220px">
+        <label for="line">Line</label>
+        <select class="field" id="line"><option>business</option><option>mobile</option><option>home</option><option>unknown</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="col side">
+    <div class="card" id="checks">
+      <label>Before it can dial</label>
+      <div class="check"><span class="bead" id="beadGate"></span><div><div id="gateText">Gate: allowed</div><div class="sub" id="gateWhy">a line the brief calls business</div></div></div>
+      <div class="check"><span class="bead"></span><div><div>Rate: 6 left this hour</div><div class="sub">the limit is 6</div></div></div>
+      <div class="check"><span class="bead"></span><div><div>Engines: warm</div><div class="sub">voice and transcriber loaded</div></div></div>
+    </div>
+
+    <div class="card">
+      <label>It will not say</label>
+      <div class="sub" id="withheld">Date of birth, insurance member id.</div>
+      <div class="sub">Any price, fee or commitment.</div>
+      <div class="sub">Anything it was not told above.</div>
+    </div>
+
+    <div class="card">
+      <label>Always true, whatever the brief says</label>
+      <div style="font-size:14px">Opens by saying it is an assistant calling for you.</div>
+      <div style="font-size:14px">Says yes if asked whether it is a machine.</div>
+      <div style="font-size:14px">Never says it is you.</div>
+    </div>
+
+    <span class="grow"></span>
+    <button class="go" id="dial">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ec9a7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A17 17 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2z"></path></svg>
+      <span id="dialLabel">Dial +1 415 555 0123</span>
+    </button>
+  </div>
+</main>
+</div>
+</x-dc>
+</body>
+</html>

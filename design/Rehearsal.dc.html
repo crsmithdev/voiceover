@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+  :root { color-scheme: dark; --bg:#0e1113; --fg:#e8e6e3; --dim:#8a9199; --line:#22282c;
+          --live:#4ec9a7; --warn:#e0796b; --warnbg:#7a3b2e; --sunk:#12171a; --them:#171c20; --us:#1d2a33; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui,-apple-system,sans-serif; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  header { display:flex; align-items:center; gap:10px; padding:14px 24px; border-bottom:1px solid var(--line); flex:none; }
+  #dot { width:10px; height:10px; border-radius:50%; background:#555; flex:none; }
+  #dot.live { background:var(--live); box-shadow:0 0 10px var(--live); }
+  #phase { color:var(--dim); font-size:14px; }
+  .grow { flex-grow:1; }
+  .tabs { display:flex; gap:6px; }
+  .tab { border:1px solid var(--line); border-radius:10px; padding:7px 13px; font-size:14px; color:var(--dim);
+         cursor:pointer; background:none; font-family:inherit; }
+  .tab.on { color:var(--fg); background:var(--us); }
+  main { flex:1; min-height:0; display:flex; gap:24px; padding:24px; }
+  .col { display:flex; flex-direction:column; gap:20px; min-width:0; }
+  .side { width:340px; flex:none; }
+  .fill { flex-grow:1; }
+  label { font-size:13px; color:var(--dim); }
+  .field { background:var(--sunk); border:1px solid var(--line); border-radius:10px; padding:11px 13px;
+           color:var(--fg); font:inherit; width:100%; }
+  textarea.field { resize:vertical; min-height:74px; }
+  .pair { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
+  .pair .field:last-child { grid-column:span 2; }
+  .card { border:1px solid var(--line); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .card.warn { border-color:var(--warnbg); }
+  .row { display:flex; justify-content:space-between; gap:12px; }
+  .row .dim { color:var(--dim); }
+  .check { display:flex; gap:10px; align-items:flex-start; }
+  .bead { width:8px; height:8px; border-radius:50%; background:var(--live); margin-top:8px; flex:none; }
+  button.go { background:var(--us); border:1px solid var(--live); border-radius:10px; padding:14px 24px;
+              font:inherit; font-weight:600; color:var(--fg); cursor:pointer; display:flex; gap:10px;
+              align-items:center; justify-content:center; }
+  button.hang { background:var(--warnbg); border:0; border-radius:10px; padding:16px; font:inherit;
+                font-weight:600; color:#fff; cursor:pointer; }
+  button.ghost { background:none; border:1px solid var(--line); border-radius:10px; padding:11px 13px;
+                 font:inherit; font-size:15px; color:var(--fg); cursor:pointer; }
+  button:disabled { opacity:.45; cursor:default; }
+  .log { display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex-grow:1; padding-right:4px; }
+  .line { max-width:82%; padding:9px 12px; border-radius:14px; white-space:pre-wrap; }
+  .them { align-self:flex-start; background:var(--them); border-bottom-left-radius:4px; }
+  .us   { align-self:flex-end;   background:var(--us);   border-bottom-right-radius:4px; }
+  .note { align-self:center; color:var(--dim); font-size:13px; }
+  .good { align-self:center; border:1px solid var(--live); color:var(--live); border-radius:999px;
+          padding:4px 12px; font-size:13px; }
+  .pill { border:1px solid var(--line); border-radius:999px; padding:4px 12px; font-size:13px; color:var(--dim); }
+  .persona { border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:15px;
+             cursor:pointer; background:none; color:var(--fg); font-family:inherit; text-align:left; }
+  .persona.on { border-color:var(--live); background:var(--sunk); }
+  .meter { flex-grow:1; height:6px; border-radius:3px; background:var(--them); overflow:hidden; }
+  .meter > i { display:block; height:6px; width:0; background:var(--live); transition:width .12s linear; }
+  .meter.grey > i { background:var(--dim); }
+  .provokes { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; }
+  #personas { overflow-y:auto; flex:1 1 auto; min-height:120px; padding-right:4px; }
+  .hidden { display:none !important; }
+  h2 { font-size:20px; margin:0; }
+  .sub { color:var(--dim); font-size:14px; }
+
+  a { color:#4ec9a7; } a:hover { color:#7fdcc0; }
+  .frame { height:860px; display:flex; flex-direction:column; }
+  </style>
+</helmet>
+<div class="frame">
+<header>
+  <span id="dot" class="live"></span>
+  <strong>Caller</strong>
+  <span id="phase">rehearsal</span>
+  <span class="grow"></span>
+  <div class="tabs"><span class="tab ">New call</span><span class="tab on">Rehearsal</span></div>
+</header>
+<main>
+  <div class="col fill">
+    <div style="display:flex; gap:12px; align-items:center">
+      <div style="display:flex; gap:8px; align-items:center; flex-grow:1">
+        <span class="sub" style="width:52px">caller</span>
+        <div class="meter"><i id="lvlUs" style="width:58%"></i></div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-grow:1">
+        <span class="sub" style="width:52px">persona</span>
+        <div class="meter grey"><i id="lvlThem" style="width:16%"></i></div>
+      </div>
+    </div>
+    <div class="log" id="rlog">
+      <div class="note">rehearsal started — Elderly and Slow-Paced</div>
+      <div class="line us">Hi, good morning. I'm an assistant calling on behalf of Chris Smith to book a cleaning.</div>
+      <div class="line them">Oh. Oh, hello. Sorry, could you… say that again? A bit slower, dear.</div>
+      <div class="line them">Hang on. Are you one of those robots?</div>
+      <div class="good">answered in 0.9 s, on the first ask</div>
+      <div class="line us">Yes, I am. I'm an assistant calling on his behalf.</div>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center; border-top:1px solid var(--line); padding-top:14px">
+      <button class="hang" id="rStop" style="width:44px;height:44px;padding:0;border-radius:50%">■</button>
+      <span class="mono" id="rClock">00:00</span>
+      <span class="grow"></span>
+      <button class="ghost" id="rTakeOver">Take over as them</button>
+    </div>
+  </div>
+
+  <div class="col side">
+    <div class="col" style="gap:8px; min-height:0; flex:1 1 auto">
+      <label>Who answers</label>
+      <div class="col" style="gap:6px" id="personas"><button class="persona on">Elderly and Slow-Paced</button><button class="persona">Baseline Receptionist</button><button class="persona">Hard of Hearing</button><button class="persona">Distracted / Busy</button><button class="persona">Skeptical / Irritable</button><button class="persona">Overly Chatty</button><button class="persona">Confused / New Employee</button><button class="persona">A voicemail machine</button><button class="persona">A menu system</button></div>
+    </div>
+    <div class="col" style="gap:8px; flex:none">
+      <label>Provoke</label>
+      <div class="provokes" id="provokes"><button class="ghost">Talk over it</button><button class="ghost">Cough</button><button class="ghost">Ask if it's a machine</button><button class="ghost">Ask something it can't know</button><button class="ghost">Go quiet</button><button class="ghost">Transfer</button></div>
+    </div>
+    <div class="card">
+      <label>Last turn, split out</label>
+      <div class="row"><span class="dim">end-of-turn wait</span><span class="mono">0.50 s</span></div>
+      <div class="row"><span class="dim">transcriber</span><span class="mono">0.12 s</span></div>
+      <div class="row"><span class="dim">brain, to a sentence</span><span class="mono">0.87 s</span></div>
+      <div class="row"><span class="dim">voice, to audio</span><span class="mono">0.08 s</span></div>
+      <div class="row" style="border-top:1px solid var(--line); padding-top:8px"><span>heard a reply after</span><span class="mono">1.57 s</span></div>
+      <div class="sub">The wait is a setting, not a cost.</div>
+    </div>
+  </div>
+</main>
+</div>
+</x-dc>
+</body>
+</html>

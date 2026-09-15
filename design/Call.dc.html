@@ -1,0 +1,134 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+  :root { color-scheme: dark; --bg:#0e1113; --fg:#e8e6e3; --dim:#8a9199; --line:#22282c;
+          --live:#4ec9a7; --warn:#e0796b; --warnbg:#7a3b2e; --sunk:#12171a; --them:#171c20; --us:#1d2a33; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui,-apple-system,sans-serif; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  header { display:flex; align-items:center; gap:10px; padding:14px 24px; border-bottom:1px solid var(--line); flex:none; }
+  #dot { width:10px; height:10px; border-radius:50%; background:#555; flex:none; }
+  #dot.live { background:var(--live); box-shadow:0 0 10px var(--live); }
+  #phase { color:var(--dim); font-size:14px; }
+  .grow { flex-grow:1; }
+  .tabs { display:flex; gap:6px; }
+  .tab { border:1px solid var(--line); border-radius:10px; padding:7px 13px; font-size:14px; color:var(--dim);
+         cursor:pointer; background:none; font-family:inherit; }
+  .tab.on { color:var(--fg); background:var(--us); }
+  main { flex:1; min-height:0; display:flex; gap:24px; padding:24px; }
+  .col { display:flex; flex-direction:column; gap:20px; min-width:0; }
+  .side { width:340px; flex:none; }
+  .fill { flex-grow:1; }
+  label { font-size:13px; color:var(--dim); }
+  .field { background:var(--sunk); border:1px solid var(--line); border-radius:10px; padding:11px 13px;
+           color:var(--fg); font:inherit; width:100%; }
+  textarea.field { resize:vertical; min-height:74px; }
+  .pair { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
+  .pair .field:last-child { grid-column:span 2; }
+  .card { border:1px solid var(--line); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .card.warn { border-color:var(--warnbg); }
+  .row { display:flex; justify-content:space-between; gap:12px; }
+  .row .dim { color:var(--dim); }
+  .check { display:flex; gap:10px; align-items:flex-start; }
+  .bead { width:8px; height:8px; border-radius:50%; background:var(--live); margin-top:8px; flex:none; }
+  button.go { background:var(--us); border:1px solid var(--live); border-radius:10px; padding:14px 24px;
+              font:inherit; font-weight:600; color:var(--fg); cursor:pointer; display:flex; gap:10px;
+              align-items:center; justify-content:center; }
+  button.hang { background:var(--warnbg); border:0; border-radius:10px; padding:16px; font:inherit;
+                font-weight:600; color:#fff; cursor:pointer; }
+  button.ghost { background:none; border:1px solid var(--line); border-radius:10px; padding:11px 13px;
+                 font:inherit; font-size:15px; color:var(--fg); cursor:pointer; }
+  button:disabled { opacity:.45; cursor:default; }
+  .log { display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex-grow:1; padding-right:4px; }
+  .line { max-width:82%; padding:9px 12px; border-radius:14px; white-space:pre-wrap; }
+  .them { align-self:flex-start; background:var(--them); border-bottom-left-radius:4px; }
+  .us   { align-self:flex-end;   background:var(--us);   border-bottom-right-radius:4px; }
+  .note { align-self:center; color:var(--dim); font-size:13px; }
+  .good { align-self:center; border:1px solid var(--live); color:var(--live); border-radius:999px;
+          padding:4px 12px; font-size:13px; }
+  .pill { border:1px solid var(--line); border-radius:999px; padding:4px 12px; font-size:13px; color:var(--dim); }
+  .persona { border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:15px;
+             cursor:pointer; background:none; color:var(--fg); font-family:inherit; text-align:left; }
+  .persona.on { border-color:var(--live); background:var(--sunk); }
+  .meter { flex-grow:1; height:6px; border-radius:3px; background:var(--them); overflow:hidden; }
+  .meter > i { display:block; height:6px; width:0; background:var(--live); transition:width .12s linear; }
+  .meter.grey > i { background:var(--dim); }
+  .provokes { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; }
+  #personas { overflow-y:auto; flex:1 1 auto; min-height:120px; padding-right:4px; }
+  .hidden { display:none !important; }
+  h2 { font-size:20px; margin:0; }
+  .sub { color:var(--dim); font-size:14px; }
+
+  a { color:#4ec9a7; } a:hover { color:#7fdcc0; }
+  .frame { height:860px; display:flex; flex-direction:column; }
+  </style>
+</helmet>
+<div class="frame">
+<header>
+  <span id="dot" class=""></span>
+  <strong>Caller</strong>
+  <span id="phase">ended</span>
+  <span class="grow"></span>
+  <div class="tabs"><span class="tab on">New call</span><span class="tab ">Rehearsal</span></div>
+</header>
+<main>
+  <div class="col fill">
+    <div class="card" id="outcome">
+      <div style="display:flex; gap:12px; align-items:flex-start">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ec9a7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:3px"><path d="M4 12.5l5 5L20 6.5"></path></svg>
+        <div><h2 id="outTitle">The caller closed the call</h2><div class="sub" id="outSub">3 m 02 s · 5 said · 5 heard · +1 415 555 0123</div></div>
+      </div>
+      <div id="outBody">A cleaning is booked for Thursday the twenty-fourth at eight thirty.</div>
+    </div>
+    <div class="log" id="log">
+      <div class="note">dialling</div>
+      <div class="note">answered</div>
+      <div class="line us">Hi, good morning. I'm an assistant calling on behalf of Chris Smith to book a cleaning.</div>
+      <div class="line them">Okay, sure. Let me pull him up. Can you spell the last name for me?</div>
+      <div class="line us">Of course. S, M, I, T, H.</div>
+      <div class="line them">Alright. I have Tuesday the twenty-second at nine fifteen, or Thursday at eight thirty.</div>
+      <div class="note">he interrupted — no words in 2 s, so it resumed the sentence</div>
+      <div class="line us">Thursday at eight thirty works. Could you put him down for that one?</div>
+      <div class="line them">Sure. I'll just need his date of birth to confirm.</div>
+      <div class="line us">I don't have that detail with me. I'll check with Chris and come back to you.</div>
+    </div>
+  </div>
+
+  <div class="col side">
+    <div class="card hidden" id="livePanel">
+      <label>This call</label>
+      <div class="row"><span class="dim">turns</span><span class="mono" id="mTurns">0</span></div>
+      <div class="row"><span class="dim">interruptions</span><span class="mono" id="mInt">0</span></div>
+      <div class="row"><span class="dim">of those, nothing</span><span class="mono" id="mNothing">0</span></div>
+      <div class="row"><span class="dim">reply, middle</span><span class="mono" id="mReply">—</span></div>
+    </div>
+
+    <div class="card warn" id="needs">
+      <label style="color:var(--warn)">Needs you</label>
+      <div><div>Their date of birth</div><div class="sub">Asked for, withheld. The booking is held without it.</div></div>
+    </div>
+
+    <div class="card" id="donePanel">
+      <label>How it went</label>
+      <div class="row"><span class="dim">answered by</span><span>a person</span></div>
+      <div class="row"><span class="dim">asked if a machine</span><span>no</span></div>
+      <div class="row"><span class="dim">reply, worst</span><span class="mono">2.1 s</span></div>
+      <div class="row"><span class="dim">transcript kept</span><span>30 days</span></div>
+    </div>
+
+    <span class="grow"></span>
+    
+    <button class="ghost" id="again">New call</button>
+  </div>
+</main>
+</div>
+</x-dc>
+</body>
+</html>
