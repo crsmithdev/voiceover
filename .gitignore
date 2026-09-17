@@ -4,3 +4,9 @@ node_modules/
 
 # the design canvas editor bundle, regenerated from the .dc.html sources
 design/caller-local-ui.html
+
+# impeccable scratch: screenshots, decision rounds, reference boards
+.impeccable/review/
+.impeccable/mocks/
+.impeccable/questions/
+.impeccable/ref/

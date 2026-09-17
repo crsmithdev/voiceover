@@ -1,0 +1,602 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-17T16:07:12+00:00",
+  "title": "Design System: Caller",
+  "extensions": {
+    "colorMeta": {
+      "console": {
+        "role": "neutral",
+        "displayName": "Console",
+        "canonical": "#2f302b",
+        "tonalRamp": [
+          "oklch(15% 0.009 116.1)",
+          "oklch(26% 0.009 116.1)",
+          "oklch(38% 0.009 116.1)",
+          "oklch(49% 0.009 116.1)",
+          "oklch(61% 0.009 116.1)",
+          "oklch(72% 0.009 116.1)",
+          "oklch(84% 0.009 116.1)",
+          "oklch(95% 0.009 116.1)"
+        ]
+      },
+      "console-raised": {
+        "role": "neutral",
+        "displayName": "Console Raised",
+        "canonical": "#383933",
+        "tonalRamp": [
+          "oklch(15% 0.010 114.6)",
+          "oklch(26% 0.010 114.6)",
+          "oklch(38% 0.010 114.6)",
+          "oklch(49% 0.010 114.6)",
+          "oklch(61% 0.010 114.6)",
+          "oklch(72% 0.010 114.6)",
+          "oklch(84% 0.010 114.6)",
+          "oklch(95% 0.010 114.6)"
+        ]
+      },
+      "console-well": {
+        "role": "neutral",
+        "displayName": "Console Well",
+        "canonical": "#232420",
+        "tonalRamp": [
+          "oklch(15% 0.007 118.3)",
+          "oklch(26% 0.007 118.3)",
+          "oklch(38% 0.007 118.3)",
+          "oklch(49% 0.007 118.3)",
+          "oklch(61% 0.007 118.3)",
+          "oklch(72% 0.007 118.3)",
+          "oklch(84% 0.007 118.3)",
+          "oklch(95% 0.007 118.3)"
+        ]
+      },
+      "edge": {
+        "role": "neutral",
+        "displayName": "Panel Edge",
+        "canonical": "#1d1e1a",
+        "tonalRamp": [
+          "oklch(15% 0.008 118.4)",
+          "oklch(26% 0.008 118.4)",
+          "oklch(38% 0.008 118.4)",
+          "oklch(49% 0.008 118.4)",
+          "oklch(61% 0.008 118.4)",
+          "oklch(72% 0.008 118.4)",
+          "oklch(84% 0.008 118.4)",
+          "oklch(95% 0.008 118.4)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Console Rule",
+        "canonical": "#4a4b44",
+        "tonalRamp": [
+          "oklch(15% 0.011 113.5)",
+          "oklch(26% 0.011 113.5)",
+          "oklch(38% 0.011 113.5)",
+          "oklch(49% 0.011 113.5)",
+          "oklch(61% 0.011 113.5)",
+          "oklch(72% 0.011 113.5)",
+          "oklch(84% 0.011 113.5)",
+          "oklch(95% 0.011 113.5)"
+        ]
+      },
+      "legend": {
+        "role": "neutral",
+        "displayName": "Legend",
+        "canonical": "#e4e2d8",
+        "tonalRamp": [
+          "oklch(15% 0.014 97.5)",
+          "oklch(26% 0.014 97.5)",
+          "oklch(38% 0.014 97.5)",
+          "oklch(49% 0.014 97.5)",
+          "oklch(61% 0.014 97.5)",
+          "oklch(72% 0.014 97.5)",
+          "oklch(84% 0.014 97.5)",
+          "oklch(95% 0.014 97.5)"
+        ]
+      },
+      "legend-dim": {
+        "role": "neutral",
+        "displayName": "Dim Legend",
+        "canonical": "#a4a296",
+        "tonalRamp": [
+          "oklch(15% 0.017 99.1)",
+          "oklch(26% 0.017 99.1)",
+          "oklch(38% 0.017 99.1)",
+          "oklch(49% 0.017 99.1)",
+          "oklch(61% 0.017 99.1)",
+          "oklch(72% 0.017 99.1)",
+          "oklch(84% 0.017 99.1)",
+          "oklch(95% 0.017 99.1)"
+        ]
+      },
+      "lamp-off": {
+        "role": "neutral",
+        "displayName": "Unlit Lamp",
+        "canonical": "#3f403a",
+        "tonalRamp": [
+          "oklch(15% 0.010 114.6)",
+          "oklch(26% 0.010 114.6)",
+          "oklch(38% 0.010 114.6)",
+          "oklch(49% 0.010 114.6)",
+          "oklch(61% 0.010 114.6)",
+          "oklch(72% 0.010 114.6)",
+          "oklch(84% 0.010 114.6)",
+          "oklch(95% 0.010 114.6)"
+        ]
+      },
+      "lamp-off-legend": {
+        "role": "neutral",
+        "displayName": "Unlit Lamp Legend",
+        "canonical": "#b3b1a5",
+        "tonalRamp": [
+          "oklch(15% 0.017 99.1)",
+          "oklch(26% 0.017 99.1)",
+          "oklch(38% 0.017 99.1)",
+          "oklch(49% 0.017 99.1)",
+          "oklch(61% 0.017 99.1)",
+          "oklch(72% 0.017 99.1)",
+          "oklch(84% 0.017 99.1)",
+          "oklch(95% 0.017 99.1)"
+        ]
+      },
+      "red-glass": {
+        "role": "primary",
+        "displayName": "Red Glass",
+        "canonical": "#4a2622",
+        "tonalRamp": [
+          "oklch(15% 0.055 27.3)",
+          "oklch(26% 0.055 27.3)",
+          "oklch(38% 0.055 27.3)",
+          "oklch(49% 0.055 27.3)",
+          "oklch(61% 0.055 27.3)",
+          "oklch(72% 0.055 27.3)",
+          "oklch(84% 0.055 27.3)",
+          "oklch(95% 0.055 27.3)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Printout White",
+        "canonical": "#e9ebe8",
+        "tonalRamp": [
+          "oklch(15% 0.005 134.9)",
+          "oklch(26% 0.005 134.9)",
+          "oklch(38% 0.005 134.9)",
+          "oklch(49% 0.005 134.9)",
+          "oklch(61% 0.005 134.9)",
+          "oklch(72% 0.005 134.9)",
+          "oklch(84% 0.005 134.9)",
+          "oklch(95% 0.005 134.9)"
+        ]
+      },
+      "paper-rule": {
+        "role": "neutral",
+        "displayName": "Paper Rule",
+        "canonical": "#c3c7c0",
+        "tonalRamp": [
+          "oklch(15% 0.011 131.4)",
+          "oklch(26% 0.011 131.4)",
+          "oklch(38% 0.011 131.4)",
+          "oklch(49% 0.011 131.4)",
+          "oklch(61% 0.011 131.4)",
+          "oklch(72% 0.011 131.4)",
+          "oklch(84% 0.011 131.4)",
+          "oklch(95% 0.011 131.4)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#1b1c18",
+        "tonalRamp": [
+          "oklch(15% 0.008 118.4)",
+          "oklch(26% 0.008 118.4)",
+          "oklch(38% 0.008 118.4)",
+          "oklch(49% 0.008 118.4)",
+          "oklch(61% 0.008 118.4)",
+          "oklch(72% 0.008 118.4)",
+          "oklch(84% 0.008 118.4)",
+          "oklch(95% 0.008 118.4)"
+        ]
+      },
+      "ink-dim": {
+        "role": "neutral",
+        "displayName": "Dim Ink",
+        "canonical": "#585b54",
+        "tonalRamp": [
+          "oklch(15% 0.012 125.9)",
+          "oklch(26% 0.012 125.9)",
+          "oklch(38% 0.012 125.9)",
+          "oklch(49% 0.012 125.9)",
+          "oklch(61% 0.012 125.9)",
+          "oklch(72% 0.012 125.9)",
+          "oklch(84% 0.012 125.9)",
+          "oklch(95% 0.012 125.9)"
+        ]
+      },
+      "red": {
+        "role": "primary",
+        "displayName": "Tally Red",
+        "canonical": "#c2301f",
+        "tonalRamp": [
+          "oklch(15% 0.198 29.6)",
+          "oklch(26% 0.198 29.6)",
+          "oklch(38% 0.198 29.6)",
+          "oklch(49% 0.198 29.6)",
+          "oklch(61% 0.198 29.6)",
+          "oklch(72% 0.198 29.6)",
+          "oklch(84% 0.198 29.6)",
+          "oklch(95% 0.198 29.6)"
+        ]
+      },
+      "red-lit-legend": {
+        "role": "primary",
+        "displayName": "Red Lamp Legend",
+        "canonical": "#fff4ea",
+        "tonalRamp": [
+          "oklch(15% 0.018 64.9)",
+          "oklch(26% 0.018 64.9)",
+          "oklch(38% 0.018 64.9)",
+          "oklch(49% 0.018 64.9)",
+          "oklch(61% 0.018 64.9)",
+          "oklch(72% 0.018 64.9)",
+          "oklch(84% 0.018 64.9)",
+          "oklch(95% 0.018 64.9)"
+        ]
+      },
+      "red-text": {
+        "role": "primary",
+        "displayName": "Red Signal Text",
+        "canonical": "#f07a6d",
+        "tonalRamp": [
+          "oklch(15% 0.148 27.8)",
+          "oklch(26% 0.148 27.8)",
+          "oklch(38% 0.148 27.8)",
+          "oklch(49% 0.148 27.8)",
+          "oklch(61% 0.148 27.8)",
+          "oklch(72% 0.148 27.8)",
+          "oklch(84% 0.148 27.8)",
+          "oklch(95% 0.148 27.8)"
+        ]
+      },
+      "green": {
+        "role": "secondary",
+        "displayName": "Tally Green",
+        "canonical": "#3e9b5c",
+        "tonalRamp": [
+          "oklch(15% 0.130 151.3)",
+          "oklch(26% 0.130 151.3)",
+          "oklch(38% 0.130 151.3)",
+          "oklch(49% 0.130 151.3)",
+          "oklch(61% 0.130 151.3)",
+          "oklch(72% 0.130 151.3)",
+          "oklch(84% 0.130 151.3)",
+          "oklch(95% 0.130 151.3)"
+        ]
+      },
+      "amber": {
+        "role": "tertiary",
+        "displayName": "Tally Amber",
+        "canonical": "#e3a62a",
+        "tonalRamp": [
+          "oklch(15% 0.147 79.7)",
+          "oklch(26% 0.147 79.7)",
+          "oklch(38% 0.147 79.7)",
+          "oklch(49% 0.147 79.7)",
+          "oklch(61% 0.147 79.7)",
+          "oklch(72% 0.147 79.7)",
+          "oklch(84% 0.147 79.7)",
+          "oklch(95% 0.147 79.7)"
+        ]
+      },
+      "lit-ink": {
+        "role": "neutral",
+        "displayName": "Lit Ink",
+        "canonical": "#17130c",
+        "tonalRamp": [
+          "oklch(15% 0.015 81.4)",
+          "oklch(26% 0.015 81.4)",
+          "oklch(38% 0.015 81.4)",
+          "oklch(49% 0.015 81.4)",
+          "oklch(61% 0.015 81.4)",
+          "oklch(72% 0.015 81.4)",
+          "oklch(84% 0.015 81.4)",
+          "oklch(95% 0.015 81.4)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The as-run log outcome headline."
+      },
+      "clock": {
+        "displayName": "Clock",
+        "purpose": "Elapsed time in the centre of the studio clock."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "The Caller mark in the gallery strip."
+      },
+      "key": {
+        "displayName": "Key",
+        "purpose": "The big legend on the TAKE, hang-up and New rundown keys."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Surface titles: Rundown, the monitor title, As-run log."
+      },
+      "readout": {
+        "displayName": "Readout",
+        "purpose": "Values in the as-run label grid and the console counters."
+      },
+      "event": {
+        "displayName": "Event",
+        "purpose": "Event lines in the programme feed."
+      },
+      "label-large": {
+        "displayName": "Label Large",
+        "purpose": "Mode keys, preflight names, read-back headings."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Panel legends, slot names, table heads, cart keys."
+      },
+      "label-small": {
+        "displayName": "Label Small",
+        "purpose": "Tally cells, the rundown stamp, the line type control."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Transcript text, rundown fields, verdicts."
+      },
+      "body-small": {
+        "displayName": "Body Small",
+        "purpose": "Monitor subtitle, preflight reasons, log dates."
+      },
+      "note": {
+        "displayName": "Note",
+        "purpose": "Hints, the sheet foot, retention notes."
+      },
+      "timecode": {
+        "displayName": "Timecode",
+        "purpose": "Feed timecodes, reply gaps, log numbers, latency figures."
+      }
+    },
+    "shadows": [
+      {
+        "name": "paper-on-console",
+        "value": "0 6px 18px rgba(0,0,0,.35)",
+        "purpose": "The rundown sheet only."
+      },
+      {
+        "name": "monitor-well",
+        "value": "inset 0 2px 10px rgba(0,0,0,.45)",
+        "purpose": "The programme monitor sinks into the console."
+      },
+      {
+        "name": "panel-highlight",
+        "value": "inset 0 1px 0 rgba(255,255,255,.05)",
+        "purpose": "Console panels; cart keys use .06."
+      },
+      {
+        "name": "lamp-unlit",
+        "value": "inset 0 1px 2px rgba(0,0,0,.45)",
+        "purpose": "Unlit tally cells; preflight dots use .6."
+      },
+      {
+        "name": "lamp-glow-red",
+        "value": "0 0 14px rgba(217,58,43,.55)",
+        "purpose": "A lit red tally cell."
+      },
+      {
+        "name": "lamp-glow-green",
+        "value": "0 0 14px rgba(62,155,92,.55)",
+        "purpose": "A lit green tally cell."
+      },
+      {
+        "name": "lamp-glow-amber",
+        "value": "0 0 14px rgba(227,166,42,.5)",
+        "purpose": "A lit amber tally cell."
+      },
+      {
+        "name": "lamp-glow-white",
+        "value": "0 0 14px rgba(228,226,216,.35)",
+        "purpose": "A lit white tally cell."
+      },
+      {
+        "name": "onair-glow",
+        "value": "0 0 18px rgba(217,58,43,.55)",
+        "purpose": "The lit ON AIR lamp; rehearsal uses amber at .45."
+      },
+      {
+        "name": "sticky-console",
+        "value": "0 -8px 20px rgba(0,0,0,.35)",
+        "purpose": "The bottom console bar at 760px and below."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "All transitions and animations."
+      },
+      {
+        "name": "lamp-fade",
+        "value": "180ms",
+        "purpose": "Tally cell and mode key colour change; the ON AIR lamp uses 220ms, dots 200ms."
+      },
+      {
+        "name": "led-step",
+        "value": "150ms linear",
+        "purpose": "A clock second LED lights."
+      },
+      {
+        "name": "key-press",
+        "value": "80ms, translateY(1px)",
+        "purpose": "The big key moves down when pressed."
+      },
+      {
+        "name": "feed-rise",
+        "value": "220ms, translateY(4px) and opacity 0",
+        "purpose": "A new feed row enters."
+      },
+      {
+        "name": "rundown-strike",
+        "value": "360ms strike, then 300ms fade to .12, 70ms stagger",
+        "purpose": "Rundown rows clear when the call ends."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "1ms",
+        "purpose": "All animation and transition under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stacked-console",
+        "value": "1180px"
+      },
+      {
+        "name": "single-column",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Mode Keys",
+      "kind": "nav",
+      "refersTo": "mode-key",
+      "description": "The three mode keys in the gallery strip; the pressed key is lit Legend.",
+      "html": "<nav class=\"ds-modes\" aria-label=\"Mode\"><button class=\"ds-modekey\" aria-pressed=\"true\">On air</button><button class=\"ds-modekey\" aria-pressed=\"false\">Rehearsal</button><button class=\"ds-modekey\" aria-pressed=\"false\">Log</button></nav>",
+      "css": ".ds-modes { display: flex; gap: 4px; padding: 12px 24px; background: var(--console-raised, #383933); } .ds-modekey { height: 32px; padding: 0 14px; border: 1px solid var(--rule, #4a4b44); border-radius: 3px; background: var(--console, #2f302b); font: 600 14px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--legend-dim, #a4a296); cursor: pointer; transition: background-color .18s cubic-bezier(.16, 1, .3, 1), color .18s cubic-bezier(.16, 1, .3, 1); } .ds-modekey:hover { color: var(--legend, #e4e2d8); } .ds-modekey:focus-visible { outline: 2px solid var(--amber, #e3a62a); outline-offset: 2px; } .ds-modekey[aria-pressed=\"true\"] { background: var(--legend, #e4e2d8); border-color: var(--legend, #e4e2d8); color: var(--lit-ink, #17130c); }"
+    },
+    {
+      "name": "ON AIR Lamp",
+      "kind": "custom",
+      "refersTo": "onair-lamp-air",
+      "description": "Red Glass at rest; TAKE lights it red with a glow. Rehearsal lights it amber.",
+      "html": "<div class=\"ds-lamps\"><div class=\"ds-onair\">On air</div><div class=\"ds-onair\" data-lit=\"air\">On air</div><div class=\"ds-onair\" data-lit=\"rehearsal\">Rehearsal</div></div>",
+      "css": ".ds-lamps { display: flex; gap: 16px; padding: 16px; background: var(--console-raised, #383933); } .ds-onair { display: grid; place-items: center; min-width: 112px; height: 34px; padding: 0 12px; border: 1px solid #1d1e1a; border-radius: 3px; background: var(--red-glass, #4a2622); font: 700 15px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #c9968c; transition: background-color .22s cubic-bezier(.16, 1, .3, 1), color .22s cubic-bezier(.16, 1, .3, 1), box-shadow .22s cubic-bezier(.16, 1, .3, 1); } .ds-onair[data-lit=\"air\"] { background: var(--red, #c2301f); color: #fff4ea; box-shadow: 0 0 18px rgba(217,58,43,.55); } .ds-onair[data-lit=\"rehearsal\"] { background: var(--amber, #e3a62a); color: var(--lit-ink, #17130c); box-shadow: 0 0 18px rgba(227,166,42,.45); }"
+    },
+    {
+      "name": "Tally",
+      "kind": "custom",
+      "refersTo": "tally-cell",
+      "description": "Twelve fixed phase cells; one lit at a time in its lamp colour.",
+      "html": "<div class=\"ds-panel\"><span class=\"ds-legend\">Phase</span><div class=\"ds-tally\"><div class=\"ds-cell\" data-lamp=\"white\">Dialing</div><div class=\"ds-cell\" data-lamp=\"white\">Ringing</div><div class=\"ds-cell on\" data-lamp=\"green\">Listening</div><div class=\"ds-cell\" data-lamp=\"amber\">Thinking</div><div class=\"ds-cell\" data-lamp=\"red\">Speaking</div><div class=\"ds-cell\" data-lamp=\"amber\">Interrupted</div><div class=\"ds-cell\" data-lamp=\"white\">On hold</div><div class=\"ds-cell\" data-lamp=\"white\">Message</div><div class=\"ds-cell\" data-lamp=\"white\">Menu</div><div class=\"ds-cell\" data-lamp=\"white\">Transfer</div><div class=\"ds-cell\" data-lamp=\"white\">Closing</div><div class=\"ds-cell\" data-lamp=\"white\">Ended</div></div></div>",
+      "css": ".ds-panel { width: 288px; padding: 14px; border: 1px solid #1d1e1a; border-radius: 3px; background: var(--console-raised, #383933); box-shadow: inset 0 1px 0 rgba(255,255,255,.05); } .ds-legend { font: 600 13px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--legend-dim, #a4a296); } .ds-tally { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 5px; margin-top: 10px; } .ds-cell { display: grid; place-items: center; height: 34px; border: 1px solid #1d1e1a; border-radius: 2px; background: var(--lamp-off, #3f403a); box-shadow: inset 0 1px 2px rgba(0,0,0,.45); font: 600 12px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .07em; text-transform: uppercase; color: var(--lamp-off-legend, #b3b1a5); transition: background-color .18s cubic-bezier(.16, 1, .3, 1), color .18s cubic-bezier(.16, 1, .3, 1), box-shadow .18s cubic-bezier(.16, 1, .3, 1); } .ds-cell.on { color: var(--lit-ink, #17130c); background: var(--c, var(--legend, #e4e2d8)); box-shadow: 0 0 14px var(--glow, rgba(228,226,216,.35)); } .ds-cell[data-lamp=\"red\"] { --c: var(--red, #c2301f); --glow: rgba(217,58,43,.55); } .ds-cell[data-lamp=\"red\"].on { color: #fff4ea; } .ds-cell[data-lamp=\"green\"] { --c: var(--green, #3e9b5c); --glow: rgba(62,155,92,.55); } .ds-cell[data-lamp=\"amber\"] { --c: var(--amber, #e3a62a); --glow: rgba(227,166,42,.5); }"
+    },
+    {
+      "name": "TAKE Key",
+      "kind": "button",
+      "refersTo": "key-take",
+      "description": "The big console key before a call; dark until the preflight passes.",
+      "html": "<div class=\"ds-keys\"><button class=\"ds-key ds-take\"><span class=\"ds-big\">Take</span><span class=\"ds-small\">Dial +1 415 555 0182</span></button><button class=\"ds-key ds-take\" disabled><span class=\"ds-big\">Take</span><span class=\"ds-small\">The preflight must pass first</span></button></div>",
+      "css": ".ds-keys { display: grid; gap: 16px; width: 288px; padding: 16px; background: var(--console, #2f302b); } .ds-key { width: 100%; min-height: 72px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 5px; padding: 12px 16px; border: 1px solid #1d1e1a; border-radius: 4px; text-align: left; cursor: pointer; transition: background-color .18s cubic-bezier(.16, 1, .3, 1), box-shadow .18s cubic-bezier(.16, 1, .3, 1), transform .08s; } .ds-key:active:not(:disabled) { transform: translateY(1px); } .ds-key:focus-visible { outline: 2px solid var(--amber, #e3a62a); outline-offset: 2px; } .ds-big { font: 700 24px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; } .ds-small { font: 400 14px/1.3 \"Barlow\", system-ui, sans-serif; } .ds-take { background: var(--green, #3e9b5c); color: var(--lit-ink, #17130c); } .ds-take:hover { background: #48ad68; } .ds-take:disabled { background: var(--lamp-off, #3f403a); color: var(--lamp-off-legend, #b3b1a5); cursor: not-allowed; }"
+    },
+    {
+      "name": "Hang-up Key",
+      "kind": "button",
+      "refersTo": "key-dump",
+      "description": "The TAKE key during a call: red, inside a 2px guard frame.",
+      "html": "<div class=\"ds-keywrap\"><div class=\"ds-keywell\"><button class=\"ds-dump\"><span class=\"ds-big\">Hang up</span><span class=\"ds-small\">Ends the call now. The report is still written. <kbd>Shift</kbd> <kbd>H</kbd></span></button></div></div>",
+      "css": ".ds-keywrap { width: 304px; padding: 24px; background: var(--console, #2f302b); } .ds-keywell { position: relative; } .ds-keywell::before { content: \"\"; position: absolute; inset: -6px; border: 2px solid #8c8a7e; border-radius: 7px; pointer-events: none; } .ds-dump { width: 100%; min-height: 72px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 5px; padding: 12px 16px; border: 1px solid #1d1e1a; border-radius: 4px; text-align: left; background: var(--red, #c2301f); color: #fff4ea; cursor: pointer; transition: background-color .18s cubic-bezier(.16, 1, .3, 1), transform .08s; } .ds-dump:hover { background: #e84a3a; } .ds-dump:active { transform: translateY(1px); } .ds-dump:focus-visible { outline: 2px solid var(--amber, #e3a62a); outline-offset: 2px; } .ds-big { font: 700 24px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; } .ds-small { font: 400 14px/1.3 \"Barlow\", system-ui, sans-serif; } .ds-dump kbd { font: 500 12px \"Red Hat Mono\", ui-monospace, monospace; padding: 1px 5px; border: 1px solid currentColor; border-radius: 2px; opacity: .8; }"
+    },
+    {
+      "name": "Rundown Sheet",
+      "kind": "input",
+      "refersTo": "rundown-field",
+      "description": "Paper sheet with slot names, underline fields, the line type control and the stamp.",
+      "html": "<div class=\"ds-sheet\"><div class=\"ds-sheet-head\"><span class=\"ds-sheet-title\">Rundown</span><span class=\"ds-stamp\">Editable</span></div><div class=\"ds-slot\"><label class=\"ds-slot-name\" for=\"ds-num\">Number</label><div class=\"ds-slot-main\"><input id=\"ds-num\" class=\"ds-field\" value=\"+1 415 555 0182\"><input class=\"ds-field\" placeholder=\"Who it reaches\" aria-label=\"Who it reaches\"><div class=\"ds-seg\" role=\"radiogroup\" aria-label=\"Line type\"><label><input type=\"radio\" name=\"ds-lt\" checked><span>Business</span></label><label><input type=\"radio\" name=\"ds-lt\"><span>Mobile</span></label><label><input type=\"radio\" name=\"ds-lt\"><span>Home</span></label><label><input type=\"radio\" name=\"ds-lt\"><span>Unknown</span></label></div></div></div><div class=\"ds-slot\"><span class=\"ds-slot-name\">Facts</span><div class=\"ds-slot-main\"><button class=\"ds-sheet-btn\">Add a fact</button></div></div></div>",
+      "css": ".ds-sheet { width: 344px; background: var(--paper, #e9ebe8); color: var(--ink, #1b1c18); border-radius: 2px; box-shadow: 0 6px 18px rgba(0,0,0,.35); font: 400 16px/1.5 \"Barlow\", system-ui, sans-serif; } .ds-sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; border-bottom: 2px solid var(--ink, #1b1c18); } .ds-sheet-title { font: 700 20px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; } .ds-stamp { font: 600 12px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; padding: 5px 8px; border: 1px solid var(--ink-dim, #585b54); border-radius: 2px; color: var(--ink-dim, #585b54); } .ds-slot { display: grid; grid-template-columns: 84px minmax(0,1fr); gap: 4px 12px; margin: 0 20px; padding: 14px 0; border-bottom: 1px solid var(--paper-rule, #c3c7c0); } .ds-slot-name { padding-top: 5px; font: 600 13px/1.2 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-dim, #585b54); } .ds-slot-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; } .ds-field { width: 100%; padding: 4px 0; border: 0; border-bottom: 1px solid var(--paper-rule, #c3c7c0); border-radius: 0; background: transparent; font: inherit; color: var(--ink, #1b1c18); caret-color: var(--red, #c2301f); } .ds-field::placeholder { color: #5f625b; } .ds-field:focus { outline: none; border-bottom: 2px solid var(--ink, #1b1c18); padding-bottom: 3px; } .ds-seg { display: flex; border: 1px solid var(--ink, #1b1c18); border-radius: 2px; overflow: hidden; } .ds-seg label { flex: 1; position: relative; } .ds-seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; } .ds-seg span { display: block; padding: 7px 2px; text-align: center; font: 600 12px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .02em; text-transform: uppercase; color: var(--ink, #1b1c18); } .ds-seg label + label span { border-left: 1px solid var(--ink, #1b1c18); } .ds-seg input:checked + span { background: var(--ink, #1b1c18); color: var(--paper, #e9ebe8); } .ds-seg input:focus-visible + span { outline: 2px solid var(--red, #c2301f); outline-offset: -3px; } .ds-sheet-btn { align-self: flex-start; padding: 5px 10px; border: 1px solid var(--ink, #1b1c18); border-radius: 2px; background: transparent; font: 600 13px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--ink, #1b1c18); cursor: pointer; } .ds-sheet-btn:hover { background: var(--ink, #1b1c18); color: var(--paper, #e9ebe8); } .ds-sheet-btn:focus-visible { outline: 2px solid var(--amber, #e3a62a); outline-offset: 2px; }"
+    },
+    {
+      "name": "Programme Feed",
+      "kind": "custom",
+      "refersTo": "programme-monitor",
+      "description": "Timecoded feed rows in the sunken programme monitor, with events and a reply gap.",
+      "html": "<section class=\"ds-monitor\"><div class=\"ds-mon-head\"><span class=\"ds-dot\" data-c=\"red\"></span><span class=\"ds-mon-title\">On air</span><span class=\"ds-mon-sub\">+1 415 555 0182 · Spoke &amp; Chain Cycles</span></div><ol class=\"ds-feed\"><li class=\"ds-line ds-event\" data-tone=\"green\"><span class=\"ds-tc\">00:04</span><span class=\"ds-text\">Answered by a person</span></li><li class=\"ds-line ds-caller\"><span class=\"ds-tc\">00:04</span><span class=\"ds-who\">Caller</span><span class=\"ds-text\">Hi, I'm an assistant calling on behalf of Chris Smith.</span></li><li class=\"ds-line ds-them\"><span class=\"ds-tc\">00:10</span><span class=\"ds-who\">Them</span><span class=\"ds-text\">Sorry, am I talking to a real person?</span></li><li class=\"ds-line ds-event\" data-tone=\"amber\"><span class=\"ds-tc\">00:12</span><span class=\"ds-text\">Asked if it is a machine</span></li><li class=\"ds-gap\">reply <b>1.61 s</b> · pause 0.50 · transcribe 0.11 · brain 0.89 · voice 0.11</li></ol></section>",
+      "css": ".ds-monitor { width: 640px; border: 1px solid #1d1e1a; border-radius: 3px; background: var(--console-well, #232420); box-shadow: inset 0 2px 10px rgba(0,0,0,.45); color: var(--legend, #e4e2d8); font: 400 16px/1.5 \"Barlow\", system-ui, sans-serif; } .ds-mon-head { display: flex; align-items: baseline; gap: 16px; padding: 16px 24px 14px; border-bottom: 1px solid var(--rule, #4a4b44); } .ds-dot { width: 10px; height: 10px; border-radius: 50%; align-self: center; background: var(--lamp-off, #3f403a); } .ds-dot[data-c=\"red\"] { background: var(--red, #c2301f); box-shadow: 0 0 8px rgba(217,58,43,.7); } .ds-mon-title { font: 700 20px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; } .ds-mon-sub { font-size: 14px; color: var(--legend-dim, #a4a296); } .ds-feed { list-style: none; margin: 0; padding: 8px 24px 24px; } .ds-line { display: grid; grid-template-columns: 56px 72px minmax(0, 68ch); gap: 12px; padding: 8px 0; animation: ds-rise .22s cubic-bezier(.16, 1, .3, 1); } @keyframes ds-rise { from { opacity: 0; transform: translateY(4px); } } .ds-tc { font: 400 13px/1.9 \"Red Hat Mono\", ui-monospace, monospace; color: var(--legend-dim, #a4a296); } .ds-who { display: flex; align-items: center; gap: 7px; height: 24px; font: 600 13px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--legend-dim, #a4a296); } .ds-who::before { content: \"\"; width: 7px; height: 7px; border-radius: 50%; background: var(--dc); } .ds-caller { --dc: var(--red, #c2301f); } .ds-them { --dc: var(--green, #3e9b5c); } .ds-them .ds-text { color: #d6e2d6; } .ds-event { grid-template-columns: 56px minmax(0,1fr); padding: 6px 0; } .ds-event .ds-text { font: 600 15px/1.6 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .02em; color: var(--legend-dim, #a4a296); } .ds-event[data-tone=\"amber\"] .ds-text { color: var(--amber, #e3a62a); } .ds-event[data-tone=\"green\"] .ds-text { color: #7fc796; } .ds-gap { margin: -4px 0 2px 152px; font: 400 12px/1.6 \"Red Hat Mono\", ui-monospace, monospace; color: var(--legend-dim, #a4a296); } .ds-gap b { font-weight: 500; color: var(--legend, #e4e2d8); } @media (prefers-reduced-motion: reduce) { .ds-line { animation-duration: 1ms; } }"
+    },
+    {
+      "name": "Studio Clock",
+      "kind": "custom",
+      "refersTo": "panel",
+      "description": "LED second ring, minute arc and 12 minute ticks with soft and hard limits; frozen at 00:19.",
+      "html": "<div class=\"ds-panel ds-clock\"><svg viewBox=\"-24 -24 328 328\" role=\"img\" aria-label=\"Elapsed 00:19\"><circle class=\"led on\" cx=\"140.00\" cy=\"40.00\" r=\"3.4\"/><circle class=\"led on\" cx=\"150.45\" cy=\"40.55\" r=\"3.4\"/><circle class=\"led on\" cx=\"160.79\" cy=\"42.19\" r=\"3.4\"/><circle class=\"led on\" cx=\"170.90\" cy=\"44.89\" r=\"3.4\"/><circle class=\"led on\" cx=\"180.67\" cy=\"48.65\" r=\"3.4\"/><circle class=\"led on\" cx=\"190.00\" cy=\"53.40\" r=\"3.4\"/><circle class=\"led on\" cx=\"198.78\" cy=\"59.10\" r=\"3.4\"/><circle class=\"led on\" cx=\"206.91\" cy=\"65.69\" r=\"3.4\"/><circle class=\"led on\" cx=\"214.31\" cy=\"73.09\" r=\"3.4\"/><circle class=\"led on\" cx=\"220.90\" cy=\"81.22\" r=\"3.4\"/><circle class=\"led on\" cx=\"226.60\" cy=\"90.00\" r=\"3.4\"/><circle class=\"led on\" cx=\"231.35\" cy=\"99.33\" r=\"3.4\"/><circle class=\"led on\" cx=\"235.11\" cy=\"109.10\" r=\"3.4\"/><circle class=\"led on\" cx=\"237.81\" cy=\"119.21\" r=\"3.4\"/><circle class=\"led on\" cx=\"239.45\" cy=\"129.55\" r=\"3.4\"/><circle class=\"led on\" cx=\"240.00\" cy=\"140.00\" r=\"3.4\"/><circle class=\"led on\" cx=\"239.45\" cy=\"150.45\" r=\"3.4\"/><circle class=\"led on\" cx=\"237.81\" cy=\"160.79\" r=\"3.4\"/><circle class=\"led on\" cx=\"235.11\" cy=\"170.90\" r=\"3.4\"/><circle class=\"led on\" cx=\"231.35\" cy=\"180.67\" r=\"3.4\"/><circle class=\"led\" cx=\"226.60\" cy=\"190.00\" r=\"3.4\"/><circle class=\"led\" cx=\"220.90\" cy=\"198.78\" r=\"3.4\"/><circle class=\"led\" cx=\"214.31\" cy=\"206.91\" r=\"3.4\"/><circle class=\"led\" cx=\"206.91\" cy=\"214.31\" r=\"3.4\"/><circle class=\"led\" cx=\"198.78\" cy=\"220.90\" r=\"3.4\"/><circle class=\"led\" cx=\"190.00\" cy=\"226.60\" r=\"3.4\"/><circle class=\"led\" cx=\"180.67\" cy=\"231.35\" r=\"3.4\"/><circle class=\"led\" cx=\"170.90\" cy=\"235.11\" r=\"3.4\"/><circle class=\"led\" cx=\"160.79\" cy=\"237.81\" r=\"3.4\"/><circle class=\"led\" cx=\"150.45\" cy=\"239.45\" r=\"3.4\"/><circle class=\"led\" cx=\"140.00\" cy=\"240.00\" r=\"3.4\"/><circle class=\"led\" cx=\"129.55\" cy=\"239.45\" r=\"3.4\"/><circle class=\"led\" cx=\"119.21\" cy=\"237.81\" r=\"3.4\"/><circle class=\"led\" cx=\"109.10\" cy=\"235.11\" r=\"3.4\"/><circle class=\"led\" cx=\"99.33\" cy=\"231.35\" r=\"3.4\"/><circle class=\"led\" cx=\"90.00\" cy=\"226.60\" r=\"3.4\"/><circle class=\"led\" cx=\"81.22\" cy=\"220.90\" r=\"3.4\"/><circle class=\"led\" cx=\"73.09\" cy=\"214.31\" r=\"3.4\"/><circle class=\"led\" cx=\"65.69\" cy=\"206.91\" r=\"3.4\"/><circle class=\"led\" cx=\"59.10\" cy=\"198.78\" r=\"3.4\"/><circle class=\"led\" cx=\"53.40\" cy=\"190.00\" r=\"3.4\"/><circle class=\"led\" cx=\"48.65\" cy=\"180.67\" r=\"3.4\"/><circle class=\"led\" cx=\"44.89\" cy=\"170.90\" r=\"3.4\"/><circle class=\"led\" cx=\"42.19\" cy=\"160.79\" r=\"3.4\"/><circle class=\"led\" cx=\"40.55\" cy=\"150.45\" r=\"3.4\"/><circle class=\"led\" cx=\"40.00\" cy=\"140.00\" r=\"3.4\"/><circle class=\"led\" cx=\"40.55\" cy=\"129.55\" r=\"3.4\"/><circle class=\"led\" cx=\"42.19\" cy=\"119.21\" r=\"3.4\"/><circle class=\"led\" cx=\"44.89\" cy=\"109.10\" r=\"3.4\"/><circle class=\"led\" cx=\"48.65\" cy=\"99.33\" r=\"3.4\"/><circle class=\"led\" cx=\"53.40\" cy=\"90.00\" r=\"3.4\"/><circle class=\"led\" cx=\"59.10\" cy=\"81.22\" r=\"3.4\"/><circle class=\"led\" cx=\"65.69\" cy=\"73.09\" r=\"3.4\"/><circle class=\"led\" cx=\"73.09\" cy=\"65.69\" r=\"3.4\"/><circle class=\"led\" cx=\"81.22\" cy=\"59.10\" r=\"3.4\"/><circle class=\"led\" cx=\"90.00\" cy=\"53.40\" r=\"3.4\"/><circle class=\"led\" cx=\"99.33\" cy=\"48.65\" r=\"3.4\"/><circle class=\"led\" cx=\"109.10\" cy=\"44.89\" r=\"3.4\"/><circle class=\"led\" cx=\"119.21\" cy=\"42.19\" r=\"3.4\"/><circle class=\"led\" cx=\"129.55\" cy=\"40.55\" r=\"3.4\"/><circle class=\"track\" cx=\"140\" cy=\"140\" r=\"116\"/><circle class=\"arc\" cx=\"140\" cy=\"140\" r=\"116\" transform=\"rotate(-90 140 140)\" stroke-dasharray=\"19.23 728.85\"/><rect class=\"min\" x=\"138\" y=\"2\" width=\"4\" height=\"10\" rx=\"1\" transform=\"rotate(30 140 140)\"/><rect class=\"min\" x=\"138\" y=\"2\" width=\"4\" height=\"10\" rx=\"1\" transform=\"rotate(60 140 140)\"/><rect class=\"min\" x=\"138\" y=\"2\" width=\"4\" height=\"10\" rx=\"1\" transform=\"rotate(90 140 140)\"/><rect class=\"min\" x=\"138\" y=\"2\" width=\"4\" height=\"10\" rx=\"1\" transform=\"rotate(120 140 140)\"/><rect class=\"min\" x=\"138\" y=\"2\" width=\"4\" height=\"10\" rx=\"1\" transform=\"rotate(150 140 140)\"/><rect class=\"min\" x=\"138\" y=\"2\" width=\"4\" height=\"10\" rx=\"1\" transform=\"rotate(180 140 140)\"/><rect class=\"min\" x=\"138\" y=\"2\" width=\"4\" height=\"10\" rx=\"1\" transform=\"rotate(210 140 140)\"/><rect class=\"min soft\" x=\"137\" y=\"2\" width=\"6\" height=\"16\" rx=\"1\" transform=\"rotate(240 140 140)\"/><rect class=\"min\" x=\"138\" y=\"2\" width=\"4\" height=\"10\" rx=\"1\" transform=\"rotate(270 140 140)\"/><rect class=\"min\" x=\"138\" y=\"2\" width=\"4\" height=\"10\" rx=\"1\" transform=\"rotate(300 140 140)\"/><rect class=\"min\" x=\"138\" y=\"2\" width=\"4\" height=\"10\" rx=\"1\" transform=\"rotate(330 140 140)\"/><rect class=\"min hard\" x=\"137\" y=\"2\" width=\"6\" height=\"16\" rx=\"1\" transform=\"rotate(360 140 140)\"/><text class=\"cap capsoft\" x=\"-1.10\" y=\"222.00\" text-anchor=\"middle\">SOFT 8</text><text class=\"cap caphard\" x=\"140\" y=\"-6\" text-anchor=\"middle\">HARD 12</text><text class=\"time\" x=\"140\" y=\"156\" text-anchor=\"middle\">00:19</text><text class=\"cap\" x=\"140\" y=\"184\" text-anchor=\"middle\">SOFT IN 07:40</text></svg></div>",
+      "css": ".ds-panel { width: 288px; padding: 14px; border: 1px solid #1d1e1a; border-radius: 3px; background: var(--console-raised, #383933); box-shadow: inset 0 1px 0 rgba(255,255,255,.05); } .ds-clock { display: grid; place-items: center; } .ds-clock svg { width: 100%; max-width: 260px; height: auto; display: block; } .ds-clock .led { fill: #43443d; transition: fill .15s linear; } .ds-clock .led.on { fill: #cfcab8; } .ds-clock .track { fill: none; stroke: #43443d; stroke-width: 4; } .ds-clock .arc { fill: none; stroke: var(--legend, #e4e2d8); stroke-width: 4; } .ds-clock .min { fill: #55564e; } .ds-clock .min.soft { fill: #6c5a31; } .ds-clock .min.hard { fill: #5e3530; } .ds-clock .time { font: 600 50px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; fill: var(--legend, #e4e2d8); letter-spacing: .02em; } .ds-clock .cap { font: 600 11px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .1em; fill: var(--legend-dim, #a4a296); } .ds-clock .capsoft { fill: var(--amber, #e3a62a); } .ds-clock .caphard { fill: #f07a6d; }"
+    },
+    {
+      "name": "Cart Wall and Talkback",
+      "kind": "custom",
+      "refersTo": "cart-key",
+      "description": "Rehearsal event keys that flash amber when pressed, and the talkback input.",
+      "html": "<div class=\"ds-cart\"><div class=\"ds-cartkeys\"><button class=\"ds-cartkey\">Ask if it's a machine</button><button class=\"ds-cartkey\">Talk over it</button><button class=\"ds-cartkey\">Put it on hold</button><button class=\"ds-cartkey\" disabled>Hang up on it</button></div><form class=\"ds-talkback\" onsubmit=\"return false\"><label class=\"ds-legend\" for=\"ds-talk\">Talkback</label><input id=\"ds-talk\" placeholder=\"Speak as them. Try: are you a robot?\"><button>Say it</button></form></div>",
+      "css": ".ds-cart { width: 600px; padding: 14px 24px 18px; background: var(--console-well, #232420); border-top: 1px solid var(--rule, #4a4b44); } .ds-cartkeys { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px,1fr)); gap: 6px; } .ds-cartkey { min-height: 44px; padding: 6px 10px; border: 1px solid #1d1e1a; border-radius: 3px; background: var(--console-raised, #383933); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); font: 600 13px/1.15 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase; text-align: left; color: var(--legend, #e4e2d8); cursor: pointer; transition: background-color .15s cubic-bezier(.16, 1, .3, 1); } .ds-cartkey:hover { background: #45463f; } .ds-cartkey:active { background: var(--amber, #e3a62a); color: var(--lit-ink, #17130c); } .ds-cartkey:focus-visible { outline: 2px solid var(--amber, #e3a62a); outline-offset: 2px; } .ds-cartkey:disabled { color: var(--lamp-off-legend, #b3b1a5); background: var(--console, #2f302b); cursor: not-allowed; } .ds-legend { font: 600 13px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--legend-dim, #a4a296); } .ds-talkback { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 10px; align-items: center; margin-top: 12px; } .ds-talkback input { height: 40px; padding: 0 12px; border: 1px solid var(--rule, #4a4b44); border-radius: 3px; background: var(--console-well, #232420); color: var(--legend, #e4e2d8); caret-color: var(--green, #3e9b5c); font: 400 16px \"Barlow\", system-ui, sans-serif; } .ds-talkback input::placeholder { color: #8a887d; } .ds-talkback input:focus { outline: none; border-color: var(--green, #3e9b5c); } .ds-talkback button { height: 40px; padding: 0 16px; border: 0; border-radius: 3px; background: var(--green, #3e9b5c); font: 700 14px/1 \"Barlow Condensed\", \"Barlow\", system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--lit-ink, #17130c); cursor: pointer; } .ds-talkback button:focus-visible { outline: 2px solid var(--amber, #e3a62a); outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Control Room",
+    "overview": "A call runs like a live broadcast. The brief is the rundown, the call is on air, and the report is the as-run log. The interface is a broadcast gallery: a console of warm grey panels, one sheet of cool paper, and backlit lamps that show state.\n\nThe system has two materials. The console is dark, warm and matte. It holds the programme monitor, the studio clock, the tally and the keys. The rundown sheet is the only paper surface, and it is the only place where Chris writes. Colour belongs to the lamps. A lamp is dark until a state lights it, and it stays in a fixed place.\n\nThe density is operational. One person watches one call and keeps a hand near the key. Every legend is short, condensed and uppercase. Every sentence is plain Barlow in sentence case. The world rejects the agent-dashboard default: a navigation sidebar, chat bubbles and status pills.",
+    "keyCharacteristics": [
+      "Warm powder-coat console grey around one cool paper rundown sheet",
+      "Red, green and amber lamps with a dark off state in fixed cells",
+      "Condensed uppercase legends; plain sentence-case body text",
+      "Mono only for timecodes, numbers and latency figures in rows",
+      "A single large key that changes from TAKE to a guarded hang-up key",
+      "Rundown rows strike through and clear when the call ends"
+    ],
+    "rules": [
+      {
+        "name": "The Tally Rule",
+        "body": "Red, green and amber mean state. Red is the caller's microphone, green is the line to them, and amber is a wait or a warning. Do not use them as decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Dark Lamp Rule",
+        "body": "A lamp never disappears. When its state ends, it goes back to its unlit face in the same place.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Sheet Rule",
+        "body": "Paper is for the rundown only. All other surfaces use the console greys.",
+        "section": "colors"
+      },
+      {
+        "name": "The Legend Rule",
+        "body": "A name for a control, a panel or a field is a condensed uppercase legend with tracking. A sentence is Barlow in sentence case.",
+        "section": "typography"
+      },
+      {
+        "name": "The Row Measurement Rule",
+        "body": "Timecodes, telephone numbers in the log and latency figures use Red Hat Mono. The clock face and the readouts use condensed figures.",
+        "section": "typography"
+      },
+      {
+        "name": "The Glow Is State Rule",
+        "body": "A glow appears only on a lit lamp. A surface without a live state has no glow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do show state with a lamp in a fixed place: a tally cell, a dot or the ON AIR lamp.",
+      "Do keep red for the caller's live microphone and hang-up, green for the line to them and TAKE, and amber for waits, warnings and rehearsal.",
+      "Do return a lamp to its unlit face (`lamp-off` or `red-glass`) when its state ends.",
+      "Do write every control and panel name as a condensed uppercase legend with open tracking (about 0.08em).",
+      "Do set timecodes, log numbers and latency figures in Red Hat Mono.",
+      "Do keep the rundown sheet as the only paper surface, with underline fields and no boxes.",
+      "Do keep corners between 2px and 4px on panels, keys and lamps.",
+      "Do keep small text on a lit red lamp at 4.5:1 contrast or more."
+    ],
+    "donts": [
+      "Don't add a navigation sidebar, chat bubbles or rounded status pills.",
+      "Don't use red, green or amber as decoration, accents or chart colours outside the latency split.",
+      "Don't give a surface a glow unless it is a lit lamp.",
+      "Don't give the console a drop shadow; only the rundown sheet casts one.",
+      "Don't move, hide or reorder tally cells to show a phase. Light a different cell.",
+      "Don't put body sentences in the condensed face or in uppercase."
+    ]
+  }
+}

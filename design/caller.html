@@ -1,0 +1,1631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Red+Hat+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: dark;
+  --console: #2f302b;
+  --console-raised: #383933;
+  --console-well: #232420;
+  --rule: #4a4b44;
+  --legend: #e4e2d8;
+  --legend-dim: #a4a296;
+  --lamp-off: #3f403a;
+  --lamp-off-legend: #b3b1a5;
+  --paper: #e9ebe8;
+  --paper-rule: #c3c7c0;
+  --ink: #1b1c18;
+  --ink-dim: #585b54;
+  --red: #c2301f;
+  --red-glass: #4a2622;
+  --green: #3e9b5c;
+  --amber: #e3a62a;
+  --lit-ink: #17130c;
+  --focus: #e3a62a;
+
+  --unit: 8px;
+  --sans: "Barlow", system-ui, sans-serif;
+  --cond: "Barlow Condensed", "Barlow", system-ui, sans-serif;
+  --mono: "Red Hat Mono", ui-monospace, monospace;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--console);
+  color: var(--legend);
+  font: 16px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+::selection { background: var(--amber); color: var(--lit-ink); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+* { scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+.legend {
+  font: 600 13px/1 var(--cond);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--legend-dim);
+}
+h2 { margin: 0; }
+
+/* ---------- gallery strip ---------- */
+.gallery {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--unit) * 3);
+  height: 56px;
+  padding: 0 calc(var(--unit) * 3);
+  border-bottom: 1px solid var(--rule);
+  background: var(--console-raised);
+}
+.mark {
+  font: 700 22px/1 var(--cond);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.modes { display: flex; gap: 4px; }
+.modekey {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--console);
+  font: 600 14px/1 var(--cond);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--legend-dim);
+  transition: background-color .18s var(--ease), color .18s var(--ease);
+}
+.modekey:hover { color: var(--legend); }
+.modekey[aria-pressed="true"] { background: var(--legend); border-color: var(--legend); color: var(--lit-ink); }
+.modekey:disabled { opacity: .5; cursor: not-allowed; }
+.proto { margin: 0 0 0 auto; font-size: 13px; color: var(--legend-dim); }
+.onair {
+  display: grid;
+  place-items: center;
+  min-width: 112px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid #1d1e1a;
+  border-radius: 3px;
+  background: var(--red-glass);
+  font: 700 15px/1 var(--cond);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: #c9968c;
+  transition: background-color .22s var(--ease), color .22s var(--ease), box-shadow .22s var(--ease);
+}
+.onair[data-lit="air"] { background: var(--red); color: #fff4ea; box-shadow: 0 0 18px rgba(194, 48, 31, .55); }
+.onair[data-lit="rehearsal"] { background: var(--amber); color: var(--lit-ink); box-shadow: 0 0 18px rgba(227, 166, 42, .45); }
+
+/* ---------- room ---------- */
+.room {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr) 320px;
+  height: calc(100dvh - 56px);
+}
+.room[data-view="log"] > .rundown,
+.room[data-view="log"] > .programme,
+.room[data-view="log"] > .console { display: none; }
+.room:not([data-view="log"]) > .archive { display: none; }
+
+/* ---------- rundown sheet ---------- */
+.rundown {
+  color-scheme: light;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: calc(var(--unit) * 2) 0 calc(var(--unit) * 2) calc(var(--unit) * 2);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 2px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+  overflow: hidden;
+}
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px 12px;
+  border-bottom: 2px solid var(--ink);
+}
+.sheet-head h2 { font: 700 20px/1 var(--cond); letter-spacing: .1em; text-transform: uppercase; }
+.sheet-state {
+  font: 600 12px/1 var(--cond);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  border: 1px solid var(--ink-dim);
+  border-radius: 2px;
+  color: var(--ink-dim);
+}
+.rundown[data-state="locked"] .sheet-state { background: var(--red); border-color: var(--red); color: #fff4ea; }
+.rundown[data-state="cleared"] .sheet-state { border-style: dashed; }
+.sheet-body { flex: 1; overflow-y: auto; padding: 0 20px; }
+.slot {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 4px 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--paper-rule);
+}
+.slot-name {
+  padding-top: 5px;
+  font: 600 13px/1.2 var(--cond);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.slot-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.field {
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 1px solid var(--paper-rule);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  caret-color: var(--red);
+  resize: none;
+}
+.field::placeholder { color: #5f625b; }
+.field:focus { outline: none; border-bottom: 2px solid var(--ink); padding-bottom: 3px; }
+.field::selection, .rundown ::selection { background: var(--ink); color: var(--paper); }
+textarea.field { line-height: 1.45; overflow: hidden; }
+.hint { margin: 0; font-size: 13px; line-height: 1.4; color: var(--ink-dim); }
+.hint.bad { color: #a8261a; }
+
+.seg { display: flex; border: 1px solid var(--ink); border-radius: 2px; overflow: hidden; }
+.seg label { flex: 1; position: relative; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg span {
+  display: block;
+  padding: 7px 2px;
+  text-align: center;
+  font: 600 12px/1 var(--cond);
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.seg label + label span { border-left: 1px solid var(--ink); }
+.seg input:checked + span { background: var(--ink); color: var(--paper); }
+.seg input:focus-visible + span { outline: 2px solid var(--red); outline-offset: -3px; }
+
+.facts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.fact { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 10px; align-items: end; padding-bottom: 4px; }
+.fact .rel { grid-row: 1; grid-column: 2; }
+.fact .fact-value { grid-column: 1 / -1; }
+.fact .fact-key { font-weight: 600; }
+.rel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font: 600 11px/1 var(--cond);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  cursor: pointer;
+  padding: 4px 0;
+}
+.rel input { accent-color: var(--ink); margin: 0; }
+.fact-remove {
+  display: none;
+}
+.sheet-btn {
+  align-self: flex-start;
+  padding: 5px 10px;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  background: transparent;
+  font: 600 13px/1 var(--cond);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.sheet-btn:hover { background: var(--ink); color: var(--paper); }
+.sheet-foot {
+  margin: 0;
+  padding: 12px 20px;
+  border-top: 1px solid var(--paper-rule);
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+.rundown[data-state="locked"] .field { border-bottom-color: transparent; }
+.rundown[data-state="locked"] .sheet-btn,
+.rundown[data-state="locked"] .rel input { pointer-events: none; }
+.rundown[data-state="locked"] .sheet-btn { visibility: hidden; }
+.rundown[data-state="locked"] .seg { pointer-events: none; opacity: .75; }
+
+/* the brief is not stored: each row strikes, then empties */
+.slot.clearing .slot-main {
+  background: linear-gradient(var(--ink), var(--ink)) no-repeat 0 50% / 0 2px;
+  animation: strike .36s var(--ease) forwards, fade .3s ease-out .36s forwards;
+}
+@keyframes strike { to { background-size: 100% 2px; } }
+@keyframes fade { to { opacity: .12; } }
+
+.empty-sheet { padding: 28px 0; display: flex; flex-direction: column; gap: 12px; }
+.empty-sheet p { margin: 0; color: var(--ink-dim); max-width: 34ch; }
+
+/* ---------- programme monitor ---------- */
+.programme {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  margin: calc(var(--unit) * 2);
+  border: 1px solid #1d1e1a;
+  border-radius: 3px;
+  background: var(--console-well);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, .45);
+}
+.mon-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 16px 24px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.mon-head .bezel { align-self: center; }
+.mon-head h2 { white-space: nowrap; font: 700 20px/1 var(--cond); letter-spacing: .1em; text-transform: uppercase; }
+.mon-sub { color: var(--legend-dim); font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mon-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 24px 24px; }
+
+.preflight { list-style: none; margin: 8px 0 0; padding: 0; }
+.check {
+  display: grid;
+  grid-template-columns: 14px 96px minmax(0, 1fr);
+  gap: 14px;
+  align-items: baseline;
+  padding: 12px 0;
+  border-bottom: 1px solid #34352f;
+}
+.check .name { font: 600 14px/1 var(--cond); letter-spacing: .08em; text-transform: uppercase; color: var(--legend-dim); }
+.check .verdict { color: var(--legend); }
+.check .why { display: block; font-size: 14px; color: var(--legend-dim); }
+.dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--lamp-off);
+  align-self: center;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .6);
+  transition: background-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.dot[data-c="green"] { background: var(--green); box-shadow: 0 0 8px rgba(62, 155, 92, .7); }
+.dot[data-c="red"] { background: var(--red); box-shadow: 0 0 8px rgba(194, 48, 31, .7); }
+.dot[data-c="amber"] { background: var(--amber); box-shadow: 0 0 8px rgba(227, 166, 42, .6); }
+
+.readback { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 28px; }
+.readback h3 { margin: 0 0 10px; font: 600 14px/1 var(--cond); letter-spacing: .08em; text-transform: uppercase; color: var(--legend-dim); }
+.readback ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 15px; }
+.readback li { padding-left: 14px; position: relative; }
+.readback li::before { content: ""; position: absolute; left: 0; top: .62em; width: 6px; height: 2px; background: var(--legend-dim); }
+.readback .never li::before { background: var(--red); }
+.readback .always li::before { background: var(--amber); }
+
+/* feed */
+.feed { list-style: none; margin: 0; padding: 0; }
+.line {
+  display: grid;
+  grid-template-columns: 56px 72px minmax(0, 68ch);
+  gap: 12px;
+  padding: 8px 0;
+  animation: rise .22s var(--ease);
+}
+@keyframes rise { from { opacity: 0; transform: translateY(4px); } }
+.tc { font: 400 13px/1.9 var(--mono); color: var(--legend-dim); }
+.who {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 24px;
+  font: 600 13px/1 var(--cond);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--legend-dim);
+}
+.who::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+.line.caller { --c: var(--red); }
+.line.them { --c: var(--green); }
+.line .text { color: var(--legend); }
+.line.them .text { color: #d6e2d6; }
+.w-partial { opacity: .5; }
+.line.event { grid-template-columns: 56px minmax(0, 1fr); padding: 6px 0; }
+.line.event .text {
+  font: 600 15px/1.6 var(--cond);
+  letter-spacing: .02em;
+  color: var(--legend-dim);
+}
+.line.event[data-tone="amber"] .text { color: var(--amber); }
+.line.event[data-tone="red"] .text { color: #f07a6d; }
+.line.event[data-tone="green"] .text { color: #7fc796; }
+.gap {
+  margin: -4px 0 2px 152px;
+  font: 400 12px/1.6 var(--mono);
+  color: var(--legend-dim);
+}
+.gap b { font-weight: 500; color: var(--legend); }
+
+/* as-run log */
+.asrun { padding: 12px 0 20px; border-bottom: 1px solid var(--rule); margin-bottom: 12px; }
+.asrun h3 { margin: 4px 0 4px; font: 700 34px/1.1 var(--cond); letter-spacing: .01em; color: var(--legend); text-wrap: balance; }
+.asrun .goal { margin: 0 0 20px; color: var(--legend-dim); max-width: 68ch; }
+.labelgrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+}
+.labelgrid div { padding: 10px 12px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); min-width: 0; }
+.labelgrid dt { margin-bottom: 6px; }
+.labelgrid dd { margin: 0; font: 600 18px/1.2 var(--cond); letter-spacing: .02em; color: var(--legend); overflow-wrap: anywhere; }
+.needs { margin-top: 20px; display: grid; gap: 8px; }
+.needs h4, .asrun h4 { margin: 0 0 4px; font: 600 14px/1 var(--cond); letter-spacing: .08em; text-transform: uppercase; color: var(--amber); }
+.need { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.warn {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--red);
+  border-radius: 2px;
+  background: rgba(194, 48, 31, .12);
+  color: #f5b3aa;
+}
+.transcript-head { margin: 28px 0 8px !important; color: var(--legend-dim) !important; }
+.asrun .kept { margin: 16px 0 0; font-size: 13px; color: var(--legend-dim); }
+
+/* last reply, split out */
+.split { margin-top: 20px; }
+.split-bar { display: flex; height: 30px; margin: 8px 0 6px; border-radius: 2px; overflow: hidden; }
+.split-bar span { display: grid; place-items: center; min-width: 0; font: 500 11px/1 var(--mono); color: var(--lit-ink); white-space: nowrap; overflow: hidden; }
+.split-bar .pause { background: repeating-linear-gradient(135deg, #6a6b62 0 4px, #5b5c54 4px 8px); color: var(--legend); }
+.split-bar .stt { background: #8fb89a; }
+.split-bar .brain { background: var(--amber); }
+.split-bar .voice { background: #e9826f; }
+.split-key { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13px; color: var(--legend-dim); }
+.split-key b { font: 500 13px var(--mono); color: var(--legend); }
+
+/* cart wall (rehearsal) */
+.cart { border-top: 1px solid var(--rule); padding: 14px 24px 18px; display: none; }
+.room[data-view="rehearsal"] .cart { display: block; }
+.hint-dark { font-size: 13px; color: var(--legend-dim); }
+.cart-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.cartkeys { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 6px; }
+.cartkey {
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid #1d1e1a;
+  border-radius: 3px;
+  background: var(--console-raised);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+  font: 600 13px/1.15 var(--cond);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--legend);
+  transition: background-color .15s var(--ease);
+}
+.cartkey:hover { background: #45463f; }
+.cartkey:active { background: var(--amber); color: var(--lit-ink); }
+.cartkey:disabled { color: var(--lamp-off-legend); background: var(--console); cursor: not-allowed; }
+.talkback { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; margin-top: 12px; }
+.talkback input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--console-well);
+  color: var(--legend);
+  caret-color: var(--green);
+}
+.talkback input::placeholder { color: #8a887d; }
+.talkback input:focus { outline: none; border-color: var(--green); }
+.talkback button {
+  height: 40px; padding: 0 16px;
+  border: 0; border-radius: 3px;
+  background: var(--green);
+  font: 700 14px/1 var(--cond); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--lit-ink);
+}
+.talkback button:disabled { background: var(--lamp-off); color: var(--lamp-off-legend); cursor: not-allowed; }
+
+/* ---------- console ---------- */
+.console {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: calc(var(--unit) * 2) calc(var(--unit) * 2) calc(var(--unit) * 2) 0;
+}
+.panel {
+  padding: 14px;
+  border: 1px solid #1d1e1a;
+  border-radius: 3px;
+  background: var(--console-raised);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+.clock { display: grid; place-items: center; }
+.clock svg { width: 100%; max-width: 260px; height: auto; display: block; }
+.clock .led { fill: #43443d; transition: fill .15s linear; }
+.clock .led.on { fill: #cfcab8; }
+.clock .minutes-track { fill: none; stroke: #43443d; stroke-width: 4; }
+.clock .minutes-arc { fill: none; stroke: var(--legend); stroke-width: 4; transition: stroke-dasharray .4s var(--ease); }
+.clock .minutes-arc.past { stroke: var(--amber); }
+.clock .min { fill: #55564e; }
+.clock .min.on { fill: var(--legend); }
+.clock .min.soft { fill: #6c5a31; }
+.clock .min.soft.on { fill: var(--amber); }
+.clock .min.hard { fill: #5e3530; }
+.clock .min.hard.on { fill: var(--red); }
+.clock .time { font: 600 50px/1 var(--cond); fill: var(--legend); letter-spacing: .02em; }
+.clock .cap { font: 600 11px/1 var(--cond); letter-spacing: .1em; fill: var(--legend-dim); text-transform: uppercase; }
+.clock .capsoft { fill: var(--amber); }
+.clock .caphard { fill: #f07a6d; }
+
+.tally { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin-top: 10px; }
+.cell {
+  display: grid;
+  place-items: center;
+  height: 34px;
+  border: 1px solid #1d1e1a;
+  border-radius: 2px;
+  background: var(--lamp-off);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .45);
+  font: 600 12px/1 var(--cond);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--lamp-off-legend);
+  transition: background-color .18s var(--ease), color .18s var(--ease), box-shadow .18s var(--ease);
+}
+.cell.on { color: var(--lit-ink); background: var(--c, var(--legend)); box-shadow: 0 0 14px var(--glow, rgba(228, 226, 216, .35)); }
+.cell[data-lamp="red"] { --c: var(--red); --glow: rgba(194, 48, 31, .55); }
+.cell[data-lamp="red"].on { color: #fff4ea; }
+.cell[data-lamp="green"] { --c: var(--green); --glow: rgba(62, 155, 92, .55); }
+.cell[data-lamp="amber"] { --c: var(--amber); --glow: rgba(227, 166, 42, .5); }
+
+.readouts { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: baseline; }
+.readouts dd { margin: 0; text-align: right; font: 600 17px/1 var(--cond); letter-spacing: .03em; color: #fbf7ea; }
+
+.personas { display: none; }
+.room[data-view="rehearsal"] .clock svg { max-width: 150px; }
+.room[data-view="rehearsal"] .clock .cap { display: none; }
+.room[data-view="rehearsal"] .cell { height: 28px; }
+.room[data-view="rehearsal"] .console { gap: 12px; }
+.room[data-view="rehearsal"] .personas { display: block; }
+.personas .legend { display: block; margin-bottom: 10px; }
+.pselect {
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #1d1e1a;
+  border-radius: 3px;
+  background: var(--console);
+  color: var(--legend);
+  font: 500 15px/1 var(--sans);
+}
+.pselect:disabled { color: var(--legend-dim); cursor: not-allowed; }
+.plist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+.persona {
+  padding: 7px 8px;
+  border: 1px solid #1d1e1a;
+  border-radius: 2px;
+  background: var(--console);
+  text-align: left;
+  font: 500 14px/1.2 var(--sans);
+  color: var(--legend-dim);
+}
+.persona:hover { color: var(--legend); }
+.persona[aria-pressed="true"] { background: var(--legend); color: var(--lit-ink); }
+.persona:disabled { cursor: not-allowed; }
+.persona:disabled:not([aria-pressed="true"]) { opacity: .45; }
+
+.keywell { margin-top: auto; position: relative; }
+.key {
+  width: 100%;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 5px;
+  padding: 12px 16px;
+  border: 1px solid #1d1e1a;
+  border-radius: 4px;
+  text-align: left;
+  transition: background-color .18s var(--ease), box-shadow .18s var(--ease), transform .08s;
+}
+.key:active:not(:disabled) { transform: translateY(1px); }
+.key .big { font: 700 24px/1 var(--cond); letter-spacing: .1em; text-transform: uppercase; }
+.key .small { font-size: 14px; line-height: 1.3; }
+.key.take { background: var(--green); color: var(--lit-ink); }
+.key.take:hover { background: #48ad68; }
+.key.take:disabled { background: var(--lamp-off); color: var(--lamp-off-legend); box-shadow: none; cursor: not-allowed; }
+.key.dump { background: var(--red); color: #fff4ea; }
+.key.dump:hover { background: #e84a3a; }
+.key.reset { background: var(--legend); color: var(--lit-ink); }
+.key kbd { font: 500 12px var(--mono); padding: 1px 5px; border: 1px solid currentColor; border-radius: 2px; opacity: .8; }
+/* the guard: a frame around the dump key, so it reads as protected without costing a click */
+.keywell.guarded::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border: 2px solid #8c8a7e;
+  border-radius: 7px;
+  pointer-events: none;
+}
+
+/* ---------- archive ---------- */
+.archive {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 6fr);
+  min-height: 0;
+}
+.archive-list, .archive-detail { min-height: 0; overflow-y: auto; }
+.archive-list { padding: 24px; border-right: 1px solid var(--rule); }
+.archive-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 14px; }
+.archive-head h2 { font: 700 20px/1 var(--cond); letter-spacing: .1em; text-transform: uppercase; }
+.archive-head p { margin: 0; font-size: 13px; color: var(--legend-dim); }
+table { width: 100%; border-collapse: collapse; }
+th { white-space: nowrap; text-align: left; padding: 0 10px 8px; border-bottom: 1px solid var(--rule); font-weight: 600; }
+td { padding: 11px 10px; border-bottom: 1px solid #3a3b35; vertical-align: baseline; }
+td.num { font: 400 14px var(--mono); white-space: nowrap; }
+td.when { white-space: nowrap; color: var(--legend-dim); font-size: 14px; }
+tbody tr { cursor: pointer; transition: background-color .15s var(--ease); }
+tbody tr:hover { background: var(--console-raised); }
+tbody tr[aria-selected="true"] { background: #43443d; }
+tbody tr[aria-selected="true"] td.when { color: var(--legend); }
+tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 2px 0 0 var(--amber); }
+.flag { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.flag + .flag { margin-left: 10px; }
+.flag.amber { color: var(--amber); }
+.flag.red { color: #f07a6d; }
+.archive-detail { padding: 24px; background: var(--console-well); }
+
+/* ---------- narrow ---------- */
+@media (max-width: 1180px) {
+  .room { grid-template-columns: 330px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .console {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr) 220px;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px 16px 0;
+    overflow: visible;
+  }
+  .console .panel { padding: 10px; }
+  .clock svg { max-width: 150px; }
+  .clock .cap { display: none; }
+  .console { grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr) 220px; }
+  .tally { margin-top: 0; }
+  .cell { height: 26px; font-size: 11px; }
+  .room[data-view="rehearsal"] .personas { grid-column: 1 / -1; }
+  .keywell { margin-top: 0; }
+  .key { height: 100%; }
+  .rundown { grid-row: 2; }
+  .programme { grid-row: 2; }
+}
+@media (max-width: 760px) {
+  body { height: auto; }
+  .gallery { height: auto; flex-wrap: wrap; gap: 10px 14px; padding: 10px 16px; }
+  .proto { order: 4; width: 100%; margin: 0; }
+  .onair { margin-left: auto; min-width: 0; }
+  .room, .room[data-view] { display: flex; flex-direction: column; height: auto; }
+  .console {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--console);
+    border-top: 1px solid var(--rule);
+    box-shadow: 0 -8px 20px rgba(0, 0, 0, .35);
+  }
+  .clock svg { max-width: 96px; }
+  .console > .panel:nth-of-type(2), .readouts-panel { display: none; }
+  .room[data-view="rehearsal"] .personas { display: block; grid-column: 1 / -1; grid-row: 2; }
+  .keywell { grid-column: 2; grid-row: 1; align-self: stretch; }
+  .key { min-height: 0; height: 100%; }
+  .key .small { font-size: 13px; }
+  .phase-now { display: block !important; }
+  .rundown { margin: 16px; max-height: none; }
+  .sheet-body { overflow: visible; }
+  .programme { margin: 0 16px 16px; min-height: 60vh; }
+  .mon-head, .mon-scroll, .cart { padding-left: 16px; padding-right: 16px; }
+  .line { grid-template-columns: 44px minmax(0, 1fr); gap: 2px 10px; }
+  .line .who { grid-column: 2; height: auto; }
+  .line .text { grid-column: 2; }
+  .line .tc { grid-row: 1 / span 2; }
+  .gap { margin-left: 54px; }
+  .readback { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .labelgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .room[data-stage="live"] .programme, .room[data-stage="ended"] .programme { order: -1; margin-top: 16px; }
+  .check { grid-template-columns: 12px minmax(0, 1fr); }
+  .check .verdict { grid-column: 2; }
+  .archive { display: flex; flex-direction: column; }
+  .archive-list { border-right: 0; padding: 16px; overflow-x: auto; }
+  .archive-detail { padding: 16px; }
+  .col-answered, .col-dur { display: none; }
+  .talkback { grid-template-columns: minmax(0, 1fr) auto; }
+  .talkback .legend { grid-column: 1 / -1; }
+}
+.phase-now { display: none; margin-top: 6px; font: 600 12px/1 var(--cond); letter-spacing: .08em; text-transform: uppercase; color: var(--legend-dim); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="gallery">
+  <div class="mark">Caller</div>
+  <nav class="modes" aria-label="Mode">
+    <button class="modekey" data-view="air" aria-pressed="true">On air</button>
+    <button class="modekey" data-view="rehearsal" aria-pressed="false">Rehearsal</button>
+    <button class="modekey" data-view="log" aria-pressed="false">Log</button>
+  </nav>
+  <p class="proto">Prototype. The call, the timings and the log are synthetic.</p>
+  <div class="onair" id="onair" data-lit="off" role="status" aria-live="polite">On air</div>
+</header>
+
+<main class="room" id="room" data-view="air" data-stage="standby">
+
+  <aside class="rundown" id="rundown" data-state="edit" aria-label="Rundown">
+    <div class="sheet-head">
+      <h2>Rundown</h2>
+      <span class="sheet-state" id="sheetState">Editable</span>
+    </div>
+    <div class="sheet-body" id="sheetBody"></div>
+    <p class="sheet-foot">Not stored. The rundown clears when the call ends.</p>
+  </aside>
+
+  <section class="programme" aria-label="Programme">
+    <div class="mon-head">
+      <span class="dot bezel" id="bezel"></span>
+      <h2 id="monTitle">Standby</h2>
+      <span class="mon-sub" id="monSub"></span>
+    </div>
+    <div class="mon-scroll" id="monScroll">
+      <div id="standby"></div>
+      <div id="asrun" hidden></div>
+      <ol class="feed" id="feed" aria-label="Transcript"></ol>
+      <div class="split" id="split" hidden></div>
+    </div>
+    <div class="cart" id="cart">
+      <div class="cart-head">
+        <span class="legend">Cart wall</span><span class="hint-dark">What the other side does</span>
+      </div>
+      <div class="cartkeys" id="cartkeys"></div>
+      <form class="talkback" id="talkback">
+        <label class="legend" for="talkInput">Talkback</label>
+        <input id="talkInput" autocomplete="off" placeholder="Speak as them. Try: are you a robot?" disabled>
+        <button id="talkSend" disabled>Say it</button>
+      </form>
+    </div>
+  </section>
+
+  <aside class="console" aria-label="Console">
+    <div class="panel clock">
+      <svg id="clock" viewBox="-24 -24 328 328" role="img" aria-label="Elapsed time"></svg>
+      <span class="phase-now" id="phaseNow">Standby</span>
+    </div>
+    <div class="panel">
+      <span class="legend">Phase</span>
+      <div class="tally" id="tally"></div>
+    </div>
+    <div class="panel readouts-panel">
+      <dl class="readouts" id="readouts"></dl>
+    </div>
+    <div class="panel personas" id="personas">
+      <label class="legend" for="plist">Who answers</label>
+      <select class="pselect" id="plist"></select>
+    </div>
+    <div class="keywell" id="keywell">
+      <button class="key take" id="key"></button>
+    </div>
+  </aside>
+
+  <section class="archive" id="archive" aria-label="Log">
+    <div class="archive-list">
+      <div class="archive-head">
+        <h2>As-run log</h2>
+        <p>Sample entries. The real list reads ~/.caller/reports; each report is deleted after 30 days.</p>
+      </div>
+      <table>
+        <thead><tr>
+          <th class="legend">Ended</th><th class="legend">Number</th><th class="legend">Outcome</th>
+          <th class="legend col-answered">Answered by</th><th class="legend col-dur">Length</th><th class="legend">Needs you</th>
+        </tr></thead>
+        <tbody id="logRows"></tbody>
+      </table>
+    </div>
+    <div class="archive-detail" id="logDetail"></div>
+  </section>
+</main>
+
+<script>
+/* ============ product truth, mirrored from src/call ============ */
+const OWNED = ["+15105550147"];
+const RATE_LIMIT = 6;
+const SOFT_S = 8 * 60, HARD_S = 12 * 60;
+const PHASES = [
+  ["dialing", "Dialing", "white"], ["ringing", "Ringing", "white"], ["listening", "Listening", "green"],
+  ["thinking", "Thinking", "amber"], ["speaking", "Speaking", "red"], ["interrupted", "Interrupted", "amber"],
+  ["onHold", "On hold", "white"], ["leavingMessage", "Message", "white"], ["workingMenu", "Menu", "white"],
+  ["transferring", "Transfer", "white"], ["closing", "Closing", "white"], ["ended", "Ended", "white"],
+];
+const REASONS = {
+  "goal-closed": "The caller closed the call",
+  "soft-limit": "The call reached the soft limit and closed",
+  "hard-limit": "The call was cut at the hard limit",
+  "message-left": "A message was left on a voicemail machine",
+  "far-end-hung-up": "The other party hung up",
+  "caller-hung-up": "The caller ended the call",
+  "dead-line": "The line was dead",
+  unknown: "The call ended without a reason being recorded",
+};
+const CLEAN = ["goal-closed", "message-left", "caller-hung-up"];
+const ANSWERED = { person: "A person", voicemail: "Voicemail", ivr: "A menu", dead: "Dead line", unknown: "Unknown" };
+const SENSITIVE = /card|payment|account|birth|social|passport|licen[cs]e|government|member id/i;
+
+function normalise(input) {
+  const digits = input.replace(/[^\d+]/g, "");
+  const bare = digits.startsWith("+") ? digits.slice(1) : digits;
+  if (!/^\d+$/.test(bare)) return null;
+  if (bare.length === 10) return `+1${bare}`;
+  if (bare.length === 11 && bare.startsWith("1")) return `+${bare}`;
+  return null;
+}
+function gate(number, lineType) {
+  const n = normalise(number);
+  if (!n) return { allowed: false, because: "Not a North American number." };
+  if (OWNED.includes(n)) return { allowed: true, because: "A number you own." };
+  if (lineType === "business") return { allowed: true, because: "The rundown calls it a published business line." };
+  return { allowed: false, because: lineType === "unknown"
+    ? "The rundown does not say what kind of line this is."
+    : `A ${lineType} line needs the legal check in spec 18.5.` };
+}
+function pretty(e164) {
+  const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(e164 || "");
+  return m ? `+1 ${m[1]} ${m[2]} ${m[3]}` : e164;
+}
+
+/* ============ the sample rundown (synthetic) ============ */
+const SAMPLE = {
+  goal: "Find out whether they have a rear derailleur hanger for a 2021 Kona Rove, and ask them to hold one until Saturday.",
+  number: "+1 415 555 0182",
+  place: "Spoke & Chain Cycles",
+  lineType: "business",
+  facts: [
+    ["Name", "Chris Smith", false],
+    ["Bike", "2021 Kona Rove, size 56", false],
+    ["Part", "Rear derailleur hanger", false],
+    ["Pickup", "Saturday, any time", false],
+    ["Card", "Visa ending 4417", false],
+  ],
+  background: "He can ride over after work on weekdays if Saturday does not suit them.",
+  limits: "A special order that costs money\nA price above $40",
+};
+
+/* ============ dom helpers ============ */
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+const room = $("room");
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ============ state ============ */
+const S = {
+  view: "air",
+  stage: "standby",           // standby | live | ended
+  brief: structuredClone(SAMPLE),
+  phase: null,
+  answeredBy: null,
+  startedAt: 0,
+  offset: 0,
+  said: [], heard: [], blocked: [], replies: [],
+  turns: 0, interruptions: 0, falseInts: 0,
+  disclosureOwed: false,
+  engines: "warming",
+  dialledThisHour: 1,
+  run: 0,
+  persona: "Receptionist",
+  endReason: null,
+  lastSplit: null,
+  soft: false,
+  lines: [],
+};
+
+/* ============ rundown ============ */
+function renderSheet() {
+  const body = $("sheetBody");
+  body.innerHTML = "";
+  if (!S.brief) {
+    const empty = el("div", "empty-sheet");
+    empty.append(el("p", null, "The last rundown cleared with its call. Write a new one: a goal, the facts it may state, and the number."));
+    const row = el("div"); row.style.display = "flex"; row.style.gap = "8px";
+    const blank = el("button", "sheet-btn", "Blank rundown");
+    blank.type = "button";
+    blank.onclick = () => { S.brief = { goal: "", number: "", place: "", lineType: "unknown", facts: [["", "", false]], background: "", limits: "" }; resetCall(); };
+    const sample = el("button", "sheet-btn", "Sample rundown");
+    sample.type = "button";
+    sample.onclick = () => { S.brief = structuredClone(SAMPLE); resetCall(); };
+    row.append(blank, sample);
+    empty.append(row);
+    body.append(empty);
+    return;
+  }
+  const b = S.brief;
+  const locked = S.stage !== "standby";
+
+  const slot = (name, forId) => {
+    const s = el("div", "slot");
+    const label = el(forId ? "label" : "span", "slot-name", name);
+    if (forId) label.htmlFor = forId;
+    const main = el("div", "slot-main");
+    s.append(label, main);
+    body.append(s);
+    return main;
+  };
+
+  let m = slot("Goal", "goal");
+  const goal = el("textarea", "field"); goal.id = "goal"; goal.rows = 1; goal.value = b.goal; goal.readOnly = locked;
+  goal.placeholder = "What the call is for, in one sentence.";
+  goal.oninput = () => { b.goal = goal.value; update(); };
+  m.append(goal);
+
+  m = slot("Number", "number");
+  const num = el("input", "field"); num.id = "number"; num.value = b.number; num.readOnly = locked; num.inputMode = "tel";
+  num.placeholder = "+1 415 555 0100";
+  num.oninput = () => { b.number = num.value; update(); };
+  const place = el("input", "field"); place.value = b.place; place.readOnly = locked; place.placeholder = "Who it reaches";
+  place.setAttribute("aria-label", "Who it reaches");
+  place.oninput = () => { b.place = place.value; update(); };
+  const seg = el("div", "seg"); seg.setAttribute("role", "radiogroup"); seg.setAttribute("aria-label", "Line type");
+  for (const t of ["business", "mobile", "home", "unknown"]) {
+    const l = el("label"); const r = el("input"); r.type = "radio"; r.name = "line"; r.value = t; r.checked = b.lineType === t; r.disabled = locked;
+    r.onchange = () => { b.lineType = t; update(); };
+    l.append(r, el("span", null, t)); seg.append(l);
+  }
+  const hint = el("p", "hint"); hint.id = "numberHint";
+  m.append(num, place, seg, hint);
+
+  m = slot("Facts");
+  m.append(el("p", "hint", "The only facts it may state. Tick a field it may give out."));
+  const list = el("ul", "facts");
+  b.facts.forEach((f, i) => {
+    const li = el("li", "fact");
+    const k = el("input", "field fact-key"); k.value = f[0]; k.placeholder = "Field"; k.readOnly = locked; k.setAttribute("aria-label", `Fact ${i + 1} field`);
+    const v = el("input", "field fact-value"); v.value = f[1]; v.placeholder = "Value"; v.readOnly = locked; v.setAttribute("aria-label", `Fact ${i + 1} value`);
+    const rel = el("label", "rel"); const c = el("input"); c.type = "checkbox"; c.checked = f[2]; c.disabled = locked;
+    rel.append(c, document.createTextNode("Give out"));
+    k.oninput = () => { f[0] = k.value; update(); };
+    v.oninput = () => { f[1] = v.value; update(); };
+    c.onchange = () => { f[2] = c.checked; update(); };
+    li.append(k, v, rel); list.append(li);
+  });
+  const add = el("button", "sheet-btn", "Add a fact"); add.type = "button";
+  add.onclick = () => { b.facts.push(["", "", false]); renderSheet(); update(); body.querySelectorAll(".fact .fact-key")[b.facts.length - 1].focus(); };
+  m.append(list, add);
+
+  m = slot("Background", "background");
+  const bg = el("textarea", "field"); bg.id = "background"; bg.rows = 1; bg.value = b.background; bg.readOnly = locked;
+  bg.placeholder = "Optional. Nuance with no field shape.";
+  bg.oninput = () => { b.background = bg.value; update(); };
+  m.append(bg, el("p", "hint", "It may say this. Never put a number here that must be withheld."));
+
+  m = slot("Never agree to", "limits");
+  const lim = el("textarea", "field"); lim.id = "limits"; lim.rows = 1; lim.value = b.limits; lim.readOnly = locked;
+  lim.placeholder = "One per line.";
+  lim.oninput = () => { b.limits = lim.value; update(); };
+  m.append(lim);
+
+  const state = S.stage === "standby" ? "edit" : "locked";
+  autosize(body);
+  $("rundown").dataset.state = state;
+  $("sheetState").textContent = state === "edit" ? "Editable" : S.view === "rehearsal" ? "Locked in rehearsal" : "Locked on air";
+}
+
+function autosize(root) {
+  root.querySelectorAll("textarea.field").forEach((t) => {
+    const fit = () => { t.style.height = "auto"; t.style.height = `${t.scrollHeight}px`; };
+    fit();
+    t.addEventListener("input", fit);
+  });
+}
+
+function clearSheet() {
+  const slots = [...document.querySelectorAll("#sheetBody .slot")];
+  slots.forEach((s, i) => setTimeout(() => s.classList.add("clearing"), i * 70));
+  $("rundown").dataset.state = "cleared";
+  $("sheetState").textContent = "Cleared";
+  setTimeout(() => { S.brief = null; renderSheet(); }, slots.length * 70 + 900);
+}
+
+/* ============ derived read-back ============ */
+function preflight() {
+  const b = S.brief;
+  const rehearsal = S.view === "rehearsal";
+  const g = b ? gate(b.number, b.lineType) : { allowed: false, because: "No rundown." };
+  const facts = b ? b.facts.filter((f) => f[0].trim() && f[1].trim()) : [];
+  const checks = [
+    rehearsal
+      ? { name: "Gate", c: "green", verdict: "Not used", why: "Rehearsal has no telephone line." }
+      : { name: "Gate", c: g.allowed ? "green" : "red", verdict: g.allowed ? "Allowed" : "Refused", why: g.because },
+    rehearsal
+      ? { name: "Rate", c: "green", verdict: "Not counted", why: "Only real calls count toward the hourly limit." }
+      : { name: "Rate", c: S.dialledThisHour < RATE_LIMIT ? "green" : "red", verdict: `${RATE_LIMIT - S.dialledThisHour} left this hour`, why: `Limit ${RATE_LIMIT} an hour, from rate.ts. Spec 17 still marks the number as undecided.` },
+    { name: "Engines", c: S.engines === "warm" ? "green" : "amber", verdict: S.engines === "warm" ? "Warm" : "Warming", why: S.engines === "warm" ? "Transcriber and voice loaded on the card." : "Loading the transcriber and the voice. This takes up to 20 seconds." },
+    { name: "Rundown", c: b && b.goal.trim() && facts.length ? "green" : "red", verdict: b && b.goal.trim() && facts.length ? "Ready" : "Incomplete", why: !b ? "No rundown." : !b.goal.trim() ? "It needs a goal." : !facts.length ? "It needs at least one fact." : `${facts.length} facts, one goal.` },
+  ];
+  return { checks, ok: checks.every((c) => c.c === "green"), facts };
+}
+
+function renderStandby() {
+  const box = $("standby");
+  if (S.stage !== "standby") { box.hidden = true; return; }
+  box.hidden = false;
+  const { checks, facts } = preflight();
+  const b = S.brief;
+  const never = [];
+  if (b) {
+    const withheld = facts.filter((f) => !f[2] && SENSITIVE.test(f[0]));
+    withheld.forEach((f) => never.push(`${f[0]}: withheld even if asked`));
+    never.push("Payment, card, account or government numbers, or a date of birth, unless a field is ticked");
+    never.push("Any price, fee or commitment not in the goal");
+    b.limits.split("\n").map((s) => s.trim()).filter(Boolean).forEach((s) => never.push(s));
+    never.push("Anything not written in this rundown");
+  }
+  const may = facts.filter((f) => f[2] || !SENSITIVE.test(f[0])).map((f) => `${f[0]}: ${f[1]}${f[2] ? " (given out if asked)" : ""}`);
+  if (b && b.background.trim()) may.push(`Background: ${b.background.trim()}`);
+
+  box.innerHTML = `
+    <ul class="preflight" aria-label="Before it can dial">
+      ${checks.map((c) => `<li class="check"><span class="dot" data-c="${c.c}"></span><span class="name">${c.name}</span><span class="verdict">${esc(c.verdict)}<span class="why">${esc(c.why)}</span></span></li>`).join("")}
+    </ul>
+    <div class="readback">
+      <div><h3>It may state</h3><ul>${may.length ? may.map((s) => `<li>${esc(s)}</li>`).join("") : "<li>Nothing yet</li>"}</ul></div>
+      <div class="never"><h3>It will not say</h3><ul>${never.map((s) => `<li>${esc(s)}</li>`).join("")}</ul></div>
+      <div class="always"><h3>Always true</h3><ul>
+        <li>It opens by saying it is an assistant calling for Chris Smith</li>
+        <li>If asked whether it is a machine, it says yes at once</li>
+        <li>It never says it is Chris</li>
+        <li>Audio is not recorded; the transcript is kept for 30 days</li>
+      </ul></div>
+    </div>`;
+}
+
+/* ============ console ============ */
+function buildClock() {
+  const svg = $("clock");
+  const c = 140;
+  let out = "";
+  for (let i = 0; i < 60; i++) {
+    const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
+    out += `<circle class="led" data-s="${i}" cx="${(c + 100 * Math.cos(a)).toFixed(2)}" cy="${(c + 100 * Math.sin(a)).toFixed(2)}" r="3.4"/>`;
+  }
+  out += `<circle class="minutes-track" cx="${c}" cy="${c}" r="116"/>`;
+  out += `<circle class="minutes-arc" id="minutesArc" cx="${c}" cy="${c}" r="116" transform="rotate(-90 ${c} ${c})" stroke-dasharray="0 ${2 * Math.PI * 116}"/>`;
+  for (let m = 1; m <= 12; m++) {
+    const cls = m === 8 ? "min soft" : m === 12 ? "min hard" : "min";
+    const big = m === 8 || m === 12;
+    out += `<rect class="${cls}" data-m="${m}" x="${c - (big ? 3 : 2)}" y="${c - 138}" width="${big ? 6 : 4}" height="${big ? 16 : 10}" rx="1" transform="rotate(${(m / 12) * 360} ${c} ${c})"/>`;
+  }
+  const sa = (8 / 12) * Math.PI * 2 - Math.PI / 2;
+  out += `<text class="cap capsoft" x="${c + 156 * Math.cos(sa) - 6}" y="${c + 156 * Math.sin(sa) + 4}" text-anchor="middle">Soft 8</text>`;
+  out += `<text class="cap caphard" x="${c}" y="${c - 146}" text-anchor="middle">Hard 12</text>`;
+  out += `<text class="time" id="clockTime" x="${c}" y="${c + 16}" text-anchor="middle">00:00</text>`;
+  out += `<text class="cap" id="clockCap" x="${c}" y="${c + 44}" text-anchor="middle">Standby</text>`;
+  svg.innerHTML = out;
+}
+function elapsed() { return S.stage === "live" ? (performance.now() - S.startedAt) / 1000 + S.offset : S.endedElapsed || 0; }
+function mmss(s) { s = Math.max(0, Math.floor(s)); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
+let lastSec = -1;
+function tickClock() {
+  const e = elapsed();
+  const sec = Math.floor(e);
+  if (sec !== lastSec) {
+    lastSec = sec;
+    $("clockTime").textContent = mmss(e);
+    const s60 = S.stage === "standby" ? -1 : sec % 60;
+    document.querySelectorAll("#clock .led").forEach((d) => d.classList.toggle("on", +d.dataset.s <= s60 && S.stage !== "standby"));
+    const mins = Math.floor(e / 60);
+    document.querySelectorAll("#clock .min").forEach((r) => r.classList.toggle("on", +r.dataset.m <= mins));
+    const circ = 2 * Math.PI * 116;
+    $("minutesArc").setAttribute("stroke-dasharray", `${(Math.min(e, HARD_S) / HARD_S) * circ} ${circ}`);
+    $("minutesArc").classList.toggle("past", e >= SOFT_S);
+    $("clockCap").textContent = S.stage === "standby" ? "Standby" : S.stage === "ended" ? "Ended" : e >= SOFT_S ? "Past soft limit" : `Soft in ${mmss(SOFT_S - e)}`;
+    $("clock").setAttribute("aria-label", `Elapsed ${mmss(e)}`);
+    if (S.stage === "live" && e >= SOFT_S && !S.soft) softLimit();
+  }
+  requestAnimationFrame(tickClock);
+}
+
+function buildTally() {
+  $("tally").innerHTML = PHASES.map(([id, label, lamp]) => `<div class="cell" data-p="${id}" data-lamp="${lamp}">${label}</div>`).join("");
+}
+function setPhase(p) {
+  S.phase = p;
+  document.querySelectorAll("#tally .cell").forEach((c) => c.classList.toggle("on", c.dataset.p === p));
+  const label = p ? PHASES.find((x) => x[0] === p)[1] : "Standby";
+  $("phaseNow").textContent = label;
+  renderReadouts();
+}
+
+function middle(xs) { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b); return s[Math.floor((s.length - 1) / 2)]; }
+function renderReadouts() {
+  const mid = middle(S.replies.map((r) => r.total));
+  const rows = [
+    ["Answered by", S.answeredBy ? ANSWERED[S.answeredBy] : "—"],
+    ["Turns", S.turns],
+    ["Interruptions", S.interruptions],
+    ["False interruptions", S.falseInts],
+    ["Reply, middle", mid == null ? "—" : `${mid.toFixed(2)} s`],
+  ];
+  $("readouts").innerHTML = rows.map(([k, v]) => `<dt class="legend">${k}</dt><dd>${v}</dd>`).join("");
+}
+
+function renderKey() {
+  const key = $("key");
+  const well = $("keywell");
+  const rehearsal = S.view === "rehearsal";
+  well.classList.remove("guarded");
+  key.onclick = null;
+  if (S.stage === "standby") {
+    const { ok } = preflight();
+    key.className = "key take";
+    key.disabled = !ok;
+    const n = S.brief ? normalise(S.brief.number) : null;
+    key.innerHTML = rehearsal
+      ? `<span class="big">Take</span><span class="small">Start a rehearsal. No telephone.</span>`
+      : `<span class="big">Take</span><span class="small">${ok ? `Dial ${pretty(n)}` : "The preflight must pass first"}</span>`;
+    key.onclick = () => (rehearsal ? startRehearsal() : startCall());
+  } else if (S.stage === "live") {
+    key.className = "key dump";
+    key.disabled = false;
+    well.classList.add("guarded");
+    key.innerHTML = `<span class="big">Hang up</span><span class="small">Ends the call now. The report is still written. <kbd>Shift</kbd> <kbd>H</kbd></span>`;
+    key.onclick = () => endCall("caller-hung-up", "Ended from the console.");
+  } else {
+    key.className = "key reset";
+    key.disabled = false;
+    key.innerHTML = `<span class="big">New rundown</span><span class="small">The last one is gone. Nothing about it was stored.</span>`;
+    key.onclick = () => { S.brief = null; resetCall(); };
+  }
+}
+
+/* ============ feed ============ */
+function stamp() { return mmss(elapsed()); }
+function scrollFeed() { const s = $("monScroll"); s.scrollTop = s.scrollHeight; }
+function addEvent(text, tone) {
+  S.lines.push({ kind: "event", tc: stamp(), text, tone });
+  const li = el("li", "line event");
+  if (tone) li.dataset.tone = tone;
+  li.append(el("span", "tc", stamp()), el("span", "text", text));
+  $("feed").append(li); scrollFeed();
+}
+function addLine(who) {
+  const li = el("li", `line ${who}`);
+  const rec = { kind: who, tc: stamp(), text: "" };
+  S.lines.push(rec);
+  const text = el("span", "text");
+  li.append(el("span", "tc", stamp()), el("span", "who", who === "caller" ? "Caller" : "Them"), text);
+  $("feed").append(li); scrollFeed();
+  new MutationObserver(() => { rec.text = text.textContent.trim(); }).observe(text, { childList: true, subtree: true, characterData: true });
+  return text;
+}
+function gapText(r) {
+  if (r.pause == null) return `reply <b>${r.total.toFixed(2)} s</b>`;
+  return `reply <b>${r.total.toFixed(2)} s</b> · pause ${r.pause.toFixed(2)} · transcribe ${r.stt.toFixed(2)} · brain ${r.brain.toFixed(2)} · voice ${r.voice.toFixed(2)}`;
+}
+function addGap(r) {
+  const d = el("div", "gap");
+  d.innerHTML = gapText(r);
+  $("feed").append(d); scrollFeed();
+  S.lines.push({ kind: "gap", r });
+}
+
+/* ============ simulation ============ */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+class Cancelled extends Error {}
+async function wait(run, ms) { await sleep(ms); if (run !== S.run) throw new Cancelled(); }
+
+async function say(run, sentences, opts = {}) {
+  setPhase("speaking");
+  const text = addLine("caller");
+  for (let si = 0; si < sentences.length; si++) {
+    const words = sentences[si].split(" ");
+    const span = el("span"); text.append(span, document.createTextNode(" "));
+    for (let wi = 0; wi < words.length; wi++) {
+      if (opts.cough === si && wi === Math.floor(words.length / 2)) {
+        S.interruptions++; S.falseInts++;
+        setPhase("interrupted");
+        addEvent("Sound on the line, no words in 2 s. It resumed the sentence.", "amber");
+        await wait(run, 2000);
+        setPhase("speaking");
+      }
+      span.textContent += (wi ? " " : "") + words[wi];
+      scrollFeed();
+      await wait(run, 230);
+    }
+    S.said.push(sentences[si]);
+  }
+  S.turns++;
+  renderReadouts();
+}
+async function hear(run, sentence) {
+  setPhase("listening");
+  await wait(run, 700);
+  const text = addLine("them");
+  const words = sentence.split(" ");
+  for (const w of words) {
+    const s = el("span", "w-partial", w + " ");
+    text.append(s); scrollFeed();
+    await wait(run, 210);
+  }
+  text.querySelectorAll(".w-partial").forEach((s) => s.classList.remove("w-partial"));
+  S.heard.push(sentence);
+}
+async function reply(run, sentences, opts) {
+  const r = { pause: 0.5, stt: 0.1 + Math.random() * 0.05, brain: 0.8 + Math.random() * 0.16, voice: 0.07 + Math.random() * 0.04 };
+  r.total = r.pause + r.stt + r.brain + r.voice;
+  await wait(run, r.pause * 1000);
+  setPhase("thinking");
+  await wait(run, (r.stt + r.brain + r.voice) * 1000);
+  S.replies.push(r); S.lastSplit = r;
+  addGap(r);
+  renderSplit();
+  await say(run, sentences, opts);
+}
+
+function freshCall() {
+  S.run++;
+  Object.assign(S, { lines: [], said: [], heard: [], blocked: [], replies: [], turns: 0, interruptions: 0, falseInts: 0, answeredBy: null, disclosureOwed: false, offset: 0, endReason: null, lastSplit: null, soft: false, endedElapsed: 0 });
+  $("feed").innerHTML = ""; $("asrun").hidden = true; $("split").hidden = true;
+  S.stage = "live";
+  room.dataset.stage = "live";
+  S.startedAt = performance.now();
+  lastSec = -1;
+  renderSheet(); renderStandby(); renderKey(); renderPersonas(); renderCart();
+  const b = S.brief;
+  $("monTitle").textContent = S.view === "rehearsal" ? "Rehearsal" : "On air";
+  $("monSub").textContent = S.view === "rehearsal" ? `${S.persona} answers. No telephone.` : `${pretty(normalise(b.number))}${b.place ? ` · ${b.place}` : ""}`;
+  $("onair").dataset.lit = S.view === "rehearsal" ? "rehearsal" : "air";
+  $("bezel").dataset.c = S.view === "rehearsal" ? "amber" : "red";
+  $("onair").textContent = S.view === "rehearsal" ? "Rehearsal" : "On air";
+  document.querySelectorAll(".modekey").forEach((k) => (k.disabled = k.dataset.view !== S.view));
+  return S.run;
+}
+
+async function startCall() {
+  const run = freshCall();
+  S.dialledThisHour++;
+  try {
+    setPhase("dialing"); addEvent("Dialing");
+    await wait(run, 1400);
+    setPhase("ringing");
+    await wait(run, 2600);
+    S.answeredBy = "person"; addEvent("Answered by a person", "green"); renderReadouts();
+    await say(run, ["Hi, I'm an assistant calling on behalf of Chris Smith.", "I'm checking whether you have a rear derailleur hanger for a 2021 Kona Rove."]);
+    await hear(run, "Uh, sure, hang on. Sorry, am I talking to a real person?");
+    addEvent("Asked if it is a machine", "amber");
+    await reply(run, ["No, I'm an AI assistant.", "I'm calling for Chris."]);
+    addEvent("Answered yes at once", "green");
+    await hear(run, "Okay. Let me look in the back. A twenty-one Rove, you said?");
+    await reply(run, ["Yes, a 2021 Kona Rove, size fifty-six."], { cough: 0 });
+    await hear(run, "Got one. I can hold it till Saturday if you give me a card number.");
+    await reply(run, ["I can't give card details on this call.", "I'll check with Chris and come back to you."]);
+    S.blocked.push("A card number to hold the part. Withheld: the field is not ticked to give out.");
+    addEvent("Blocked: card number, withheld", "amber");
+    await hear(run, "No worries, I'll put his name on it anyway. Till Saturday.");
+    await reply(run, ["Thank you. Chris will pick it up on Saturday.", "Goodbye."]);
+    setPhase("closing");
+    await wait(run, 900);
+    endCall("goal-closed");
+  } catch (e) { if (!(e instanceof Cancelled)) throw e; }
+}
+
+function endCall(reason, note) {
+  if (S.stage !== "live") return;
+  S.endedElapsed = elapsed();
+  S.run++;
+  S.stage = "ended";
+  room.dataset.stage = "ended";
+  S.endReason = reason;
+  setPhase("ended");
+  addEvent(note ? `Ended. ${note}` : "Ended", reason === "goal-closed" ? "green" : null);
+  $("onair").dataset.lit = "off";
+  delete $("bezel").dataset.c;
+  $("onair").textContent = "On air";
+  document.querySelectorAll(".modekey").forEach((k) => (k.disabled = false));
+  const report = currentReport();
+  $("monTitle").textContent = S.view === "rehearsal" ? "Rehearsal report" : "As-run log";
+  $("asrun").hidden = false;
+  renderAsRun($("asrun"), report, { withFeedNote: true });
+  $("monScroll").scrollTop = 0;
+  renderKey(); renderPersonas(); renderCart(); lastSec = -1;
+  clearSheet();
+  if (S.view !== "rehearsal") LOG.unshift(report);
+  renderLog();
+}
+
+function currentReport() {
+  const b = S.brief;
+  const phaseAtEnd = S.phaseBeforeEnd || "closing";
+  return {
+    number: S.view === "rehearsal" ? "Rehearsal" : pretty(normalise(b.number)),
+    place: S.view === "rehearsal" ? `${S.persona} answered` : b.place,
+    goal: b.goal,
+    outcome: S.endReason,
+    answeredBy: S.answeredBy,
+    clean: CLEAN.includes(S.endReason),
+    endedAt: new Date(),
+    durationS: S.endedElapsed,
+    said: [...S.said], heard: [...S.heard], blocked: [...S.blocked],
+    disclosureLeftOwed: S.disclosureOwed,
+    phaseAtEnd,
+    replies: [...S.replies],
+    interruptions: S.interruptions, falseInts: S.falseInts,
+    lines: S.lines.map((l) => ({ ...l })),
+  };
+}
+
+/* ============ as-run log ============ */
+function renderAsRun(box, r, { withFeedNote } = {}) {
+  const mid = middle(r.replies.map((x) => x.total));
+  const worst = r.replies.length ? r.replies.reduce((a, b) => (b.total > a.total ? b : a)) : null;
+  const kept = new Date(r.endedAt.getTime() + 30 * 864e5).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  box.className = "asrun";
+  box.innerHTML = `
+    <h3>${REASONS[r.outcome] || REASONS.unknown}</h3>
+    <p class="goal">${esc(r.number)}${r.place ? ` · ${esc(r.place)}` : ""}<br>Goal: ${esc(r.goal)}</p>
+    <dl class="labelgrid">
+      <div><dt class="legend">Answered by</dt><dd>${r.answeredBy ? ANSWERED[r.answeredBy] : "Nothing answered"}</dd></div>
+      <div><dt class="legend">Length</dt><dd>${r.durationS == null ? "Unknown" : mmss(r.durationS)}</dd></div>
+      <div><dt class="legend">Said · heard</dt><dd>${r.said.length} · ${r.heard.length}</dd></div>
+      <div><dt class="legend">Interruptions</dt><dd>${r.interruptions}</dd></div>
+      <div><dt class="legend">False interruptions</dt><dd>${r.falseInts}</dd></div>
+      <div><dt class="legend">Reply, middle</dt><dd>${mid == null ? "—" : `${mid.toFixed(2)} s`}</dd></div>
+      <div><dt class="legend">Slowest reply</dt><dd>${worst ? `${worst.total.toFixed(2)} s` : "—"}</dd></div>
+      <div><dt class="legend">Closed</dt><dd>${r.clean ? "Cleanly" : "Not cleanly"}</dd></div>
+    </dl>
+    ${r.blocked.length ? `<div class="needs"><h4>Needs you</h4>${r.blocked.map((x) => `<div class="need"><span class="dot" data-c="amber"></span><span>${esc(x)}</span></div>`).join("")}</div>` : ""}
+    ${r.disclosureLeftOwed ? `<div class="warn">A direct question about being a machine went unanswered.</div>` : ""}
+    ${!r.clean ? `<div class="warn">The call did not close cleanly. It stopped while ${esc(r.phaseAtEnd)}.</div>` : ""}
+    <p class="kept">Transcript kept until ${kept}. Audio was not recorded.${withFeedNote ? " The transcript follows." : ""}</p>`;
+  if (withFeedNote) return;
+  const h = el("h4", "transcript-head", "Transcript");
+  const ol = el("ol", "feed");
+  for (const l of r.lines || []) {
+    if (l.kind === "gap") { const d = el("div", "gap"); d.innerHTML = gapText(l.r); ol.append(d); continue; }
+    const li = el("li", `line ${l.kind}`);
+    li.style.animation = "none";
+    if (l.kind === "event") { if (l.tone) li.dataset.tone = l.tone; li.append(el("span", "tc", l.tc), el("span", "text", l.text)); }
+    else li.append(el("span", "tc", l.tc), el("span", "who", l.kind === "caller" ? "Caller" : "Them"), el("span", "text", l.text));
+    ol.append(li);
+  }
+  box.append(h, ol);
+}
+
+function renderSplit() {
+  const box = $("split");
+  const r = S.lastSplit;
+  if (S.view !== "rehearsal" || !r) { box.hidden = true; return; }
+  box.hidden = false;
+  const pct = (x) => `${((x / r.total) * 100).toFixed(1)}%`;
+  box.innerHTML = `
+    <span class="legend">Last reply, split out</span>
+    <div class="split-bar" role="img" aria-label="Reply after ${r.total.toFixed(2)} seconds">
+      <span class="pause" style="width:${pct(r.pause)}">pause</span>
+      <span class="stt" style="width:${pct(r.stt)}"></span>
+      <span class="brain" style="width:${pct(r.brain)}">brain</span>
+      <span class="voice" style="width:${pct(r.voice)}"></span>
+    </div>
+    <div class="split-key">
+      <span>End-of-turn pause <b>${r.pause.toFixed(2)}</b> (a setting, not a cost)</span>
+      <span>Transcriber <b>${r.stt.toFixed(2)}</b></span>
+      <span>Brain, to a sentence <b>${r.brain.toFixed(2)}</b></span>
+      <span>Voice, to audio <b>${r.voice.toFixed(2)}</b></span>
+      <span>Reply after <b>${r.total.toFixed(2)} s</b></span>
+    </div>`;
+}
+
+/* ============ rehearsal ============ */
+const PERSONAS = {
+  "Receptionist": { by: "person", open: "Good morning, Spoke and Chain, how can I help?" },
+  "Slow talker": { by: "person", open: "Hello... this is... the bike shop. Who's... calling, please?" },
+  "Hard of hearing": { by: "person", open: "Hello? You'll have to speak up, it's loud in the workshop." },
+  "Busy": { by: "person", open: "Yep, one sec. Yeah, go ahead." },
+  "Irritable": { by: "person", open: "Who is this? We don't take sales calls." },
+  "Chatty": { by: "person", open: "Oh hi! Sorry, mad morning, three wheels to true, anyway, go on!" },
+  "New employee": { by: "person", open: "Um, hi, it's my second day, who did you want?" },
+  "Voicemail": { by: "voicemail", open: "You've reached Spoke and Chain. Leave a message after the tone." },
+  "Menu system": { by: "ivr", open: "For repairs, press one. For parts, press two." },
+};
+function renderPersonas() {
+  const live = S.stage === "live";
+  const sel = $("plist");
+  if (!sel.options.length) {
+    for (const name of Object.keys(PERSONAS)) sel.append(new Option(name, name));
+    sel.onchange = () => { S.persona = sel.value; update(); };
+  }
+  sel.value = S.persona;
+  sel.disabled = live;
+}
+async function startRehearsal() {
+  const run = freshCall();
+  const p = PERSONAS[S.persona];
+  try {
+    setPhase("dialing"); addEvent("Rehearsal. No line is dialled.");
+    await wait(run, 600);
+    setPhase("ringing");
+    await wait(run, 900);
+    S.answeredBy = p.by; addEvent(`Answered by ${ANSWERED[p.by].toLowerCase()}`, "green"); renderReadouts();
+    if (p.by === "voicemail") {
+      await hear(run, p.open);
+      addEvent("Greeting is a monologue. Turn-taking is off until the beep.");
+      setPhase("leavingMessage");
+      await wait(run, 800);
+      await say(run, ["Hi, this is an assistant calling for Chris Smith about a rear derailleur hanger for a 2021 Kona Rove.", "He'll call back. Thank you."]);
+      await wait(run, 600);
+      endCall("message-left");
+      return;
+    }
+    if (p.by === "ivr") {
+      await hear(run, p.open);
+      setPhase("workingMenu");
+      addEvent("Menu detected. The framework sends tone 2.");
+      await wait(run, 1200);
+      await hear(run, "Parts desk, this is Sam.");
+    } else {
+      await hear(run, p.open);
+    }
+    await reply(run, ["Hi, I'm an assistant calling on behalf of Chris Smith.", "I'm checking whether you have a rear derailleur hanger for a 2021 Kona Rove."]);
+    setPhase("listening");
+    renderCart();
+    addEvent("Your turn. Use the cart wall, or speak as them.");
+  } catch (e) { if (!(e instanceof Cancelled)) throw e; }
+}
+
+let busy = false;
+async function farEnd(fn) {
+  if (S.stage !== "live" || busy) return;
+  busy = true; renderCart();
+  const run = S.run;
+  try { await fn(run); if (S.stage === "live") setPhase("listening"); }
+  catch (e) { if (!(e instanceof Cancelled)) throw e; }
+  finally { busy = false; renderCart(); }
+}
+function answerFor(line) {
+  const b = S.brief;
+  if (/\b(robot|machine|recording|real person|human|ai|a bot|computer)\b/i.test(line)) {
+    return { disclosure: true, say: ["Yes, I'm an AI assistant.", "I'm calling for Chris Smith."] };
+  }
+  const fact = b.facts.find((f) => f[0] && new RegExp(`\\b${f[0].trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(line));
+  if (fact && SENSITIVE.test(fact[0]) && !fact[2]) {
+    return { blocked: `${fact[0]}, asked for and withheld. The field is not ticked to give out.`, say: ["I can't give that detail on this call.", "I'll check with Chris and come back to you."] };
+  }
+  if (fact) return { say: [`It's ${fact[1]}.`] };
+  if (/\?|birth|address|spell|when|what|which|how much/i.test(line)) {
+    return { blocked: `"${line}" is not in the rundown.`, say: ["I don't have that detail with me.", "I'll check with Chris and come back to you."] };
+  }
+  return { say: ["Thank you.", "Could you check whether you have that hanger in stock?"] };
+}
+async function speakAsThem(run, line) {
+  await hear(run, line);
+  const a = answerFor(line);
+  if (a.disclosure) addEvent("Asked if it is a machine", "amber");
+  await reply(run, a.say);
+  if (a.disclosure) addEvent("Answered yes at once", "green");
+  if (a.blocked) { S.blocked.push(a.blocked); addEvent("Blocked: deferred to Chris", "amber"); }
+}
+const CART = [
+  ["Ask if it's a machine", (run) => speakAsThem(run, "Hang on, is this a recording or a real person?")],
+  ["Ask what it can't know", (run) => speakAsThem(run, "And what's his date of birth?")],
+  ["Ask for the card", (run) => speakAsThem(run, "I can hold it if you give me the card number.")],
+  ["Cough mid-sentence", async (run) => {
+    await hear(run, "Do you know which derailleur he has?");
+    await reply(run, ["I don't have that detail.", "I'll check with Chris and come back to you."], { cough: 0 });
+    S.blocked.push("Which derailleur the bike has. Not in the rundown.");
+  }],
+  ["Talk over it", async (run) => {
+    await hear(run, "Which size was it?");
+    const r = { pause: 0.5, stt: 0.12, brain: 0.86, voice: 0.08 }; r.total = 1.56;
+    await wait(run, 1060); S.replies.push(r); S.lastSplit = r; addGap(r); renderSplit();
+    setPhase("speaking");
+    const t = addLine("caller"); t.textContent = "It's a size fifty-";
+    await wait(run, 500);
+    S.interruptions++;
+    setPhase("interrupted");
+    addEvent("They spoke over it. Playback stopped after 0.5 s; words followed.", "amber");
+    await hear(run, "Sorry, fifty-six, yeah? Got it.");
+    await reply(run, ["Yes, fifty-six."]);
+  }],
+  ["Go quiet", async (run) => {
+    setPhase("listening");
+    addEvent("Four seconds of nothing");
+    await wait(run, 4000);
+    await say(run, ["Are you still there?"]);
+  }],
+  ["Put it on hold", async (run) => {
+    setPhase("onHold");
+    addEvent("Hold music. Not speech, so no detector fires.");
+    await wait(run, 3500);
+    await hear(run, "Thanks for holding.");
+  }],
+  ["Transfer", async (run) => {
+    setPhase("transferring");
+    addEvent("Transferred. A new person, with none of the conversation.");
+    await wait(run, 1800);
+    await hear(run, "Parts, this is Dana.");
+    await reply(run, ["Hi, I'm an assistant calling on behalf of Chris Smith.", "I'm checking whether you have a rear derailleur hanger for a 2021 Kona Rove."]);
+  }],
+  ["Jump to 7:50", async () => { S.offset += Math.max(0, SOFT_S - 10 - elapsed()); lastSec = -1; addEvent("Clock moved to 7:50 to rehearse the soft limit"); }],
+  ["Hang up on it", async (run) => { await wait(run, 300); S.phaseBeforeEnd = S.phase; endCall("far-end-hung-up"); }],
+];
+async function softLimit() {
+  S.soft = true;
+  const run = S.run;
+  addEvent("Soft limit. It waits for the sentence, then closes.", "amber");
+  while (busy) { await sleep(100); if (run !== S.run) return; }
+  busy = true; renderCart();
+  try {
+    setPhase("closing");
+    await say(run, ["I need to wrap up here.", "Chris will call back about the rest. Thank you."]);
+    endCall("soft-limit");
+  } catch (e) { if (!(e instanceof Cancelled)) throw e; }
+  finally { busy = false; renderCart(); }
+}
+function renderCart() {
+  const live = S.view === "rehearsal" && S.stage === "live" && !busy && ["listening"].includes(S.phase);
+  const keys = $("cartkeys");
+  if (!keys.childElementCount) {
+    CART.forEach(([label, fn], i) => {
+      const b = el("button", "cartkey", label);
+      b.onclick = () => farEnd(fn);
+      keys.append(b);
+    });
+  }
+  keys.querySelectorAll("button").forEach((b) => (b.disabled = !live));
+  $("talkInput").disabled = !live;
+  $("talkSend").disabled = !live;
+}
+$("talkback").onsubmit = (e) => {
+  e.preventDefault();
+  const line = $("talkInput").value.trim();
+  if (!line) return;
+  $("talkInput").value = "";
+  farEnd((run) => speakAsThem(run, line)).then(() => $("talkInput").focus());
+};
+
+/* ============ log archive (samples) ============ */
+const day = (d, h, m) => new Date(2026, 8, d, h, m);
+const LOG = [
+  { number: "+1 415 555 0139", place: "Bayview Dental", goal: "Book a cleaning, any weekday morning in the next three weeks, and confirm the time.", outcome: "goal-closed", answeredBy: "person", clean: true, endedAt: day(16, 10, 42), durationS: 154, said: Array(7), heard: Array(6), blocked: ["His date of birth, to confirm the booking. Not in the rundown; the booking is held without it."], disclosureLeftOwed: false, phaseAtEnd: "closing", replies: [{ total: 1.41 }, { total: 1.62 }, { total: 2.08 }], interruptions: 1, falseInts: 1 },
+  { number: "+1 510 555 0147", place: "Your own line", goal: "Leave a message that the parcel is on the porch.", outcome: "message-left", answeredBy: "voicemail", clean: true, endedAt: day(15, 18, 5), durationS: 31, said: Array(2), heard: Array(1), blocked: [], disclosureLeftOwed: false, phaseAtEnd: "leavingMessage", replies: [], interruptions: 0, falseInts: 0 },
+  { number: "+1 650 555 0110", place: "Harbor Auto Glass", goal: "Get a quote for a windscreen chip repair on Thursday.", outcome: "soft-limit", answeredBy: "person", clean: false, endedAt: day(14, 14, 22), durationS: 481, said: Array(19), heard: Array(21), blocked: ["The insurance policy number. Withheld: not ticked to give out.", "The car's registration. Not in the rundown."], disclosureLeftOwed: false, phaseAtEnd: "closing", replies: [{ total: 1.38 }, { total: 1.9 }], interruptions: 4, falseInts: 2 },
+  { number: "+1 415 555 0171", place: "Marlowe Library", goal: "Ask whether the reserved book can be picked up by someone else.", outcome: "far-end-hung-up", answeredBy: "person", clean: false, endedAt: day(13, 11, 9), durationS: 22, said: Array(2), heard: Array(2), blocked: [], disclosureLeftOwed: true, phaseAtEnd: "speaking", replies: [{ total: 1.52 }], interruptions: 1, falseInts: 0 },
+  { number: "+1 408 555 0192", place: "Coast Plumbing", goal: "Move Tuesday's visit to any afternoon next week.", outcome: "dead-line", answeredBy: null, clean: false, endedAt: day(12, 9, 30), durationS: null, said: [], heard: [], blocked: [], disclosureLeftOwed: false, phaseAtEnd: "ringing", replies: [], interruptions: 0, falseInts: 0 },
+];
+const T = (tc, kind, text, tone) => ({ tc, kind, text, tone });
+const Gp = (total) => ({ kind: "gap", r: { total, pause: 0.5, stt: 0.12, brain: total - 0.7, voice: 0.08 } });
+LOG[0].lines = [T("00:00", "event", "Dialing"), T("00:06", "event", "Answered by a person", "green"),
+  T("00:06", "caller", "Hi, I'm an assistant calling on behalf of Chris Smith, to book a cleaning."),
+  T("00:11", "them", "Sure. When was he last in?"), Gp(1.41),
+  T("00:13", "caller", "I don't have that detail with me. He'd like a weekday morning in the next three weeks."),
+  T("00:22", "them", "Thursday the twenty-fourth at eight thirty?"), Gp(1.62),
+  T("00:24", "caller", "Thursday at eight thirty works. Please book it."),
+  T("00:29", "event", "Sound on the line, no words in 2 s. It resumed the sentence.", "amber"),
+  T("00:34", "them", "Done. I'll need his date of birth to confirm."), Gp(2.08),
+  T("00:37", "caller", "I don't have that detail. I'll check with Chris and come back to you."),
+  T("00:41", "event", "Blocked: date of birth, deferred", "amber"), T("02:34", "event", "Ended", "green")];
+LOG[1].lines = [T("00:00", "event", "Dialing"), T("00:14", "event", "Answered by voicemail"),
+  T("00:14", "them", "You've reached Chris. Leave a message."), T("00:19", "event", "Greeting is a monologue. Turn-taking is off until the beep."),
+  T("00:20", "caller", "Hi, this is an assistant calling for Chris Smith. The parcel is on the porch."), T("00:31", "event", "Ended", "green")];
+LOG[2].lines = [T("00:00", "event", "Dialing"), T("00:05", "event", "Answered by a person", "green"),
+  T("00:05", "caller", "Hi, I'm an assistant calling on behalf of Chris Smith, about a windscreen chip."),
+  T("00:10", "them", "Okay. What's the policy number?"), Gp(1.38),
+  T("00:12", "caller", "I can't give that on this call. I'll check with Chris and come back to you."),
+  T("00:17", "event", "Blocked: policy number, withheld", "amber"), T("07:58", "event", "Soft limit. It waits for the sentence, then closes.", "amber"),
+  T("08:01", "event", "Ended")];
+LOG[3].lines = [T("00:00", "event", "Dialing"), T("00:03", "event", "Answered by a person", "green"),
+  T("00:03", "caller", "Hi, I'm an assistant calling on behalf of Chris Smith."),
+  T("00:07", "them", "Are you a bot? I don't talk to"), T("00:08", "event", "They spoke over it. The question arrived mid-sentence.", "amber"),
+  Gp(1.52), T("00:10", "caller", "I'm calling about a reserved book, and"), T("00:22", "event", "The other party hung up", "red")];
+LOG[4].lines = [T("00:00", "event", "Dialing"), T("00:30", "event", "The line was dead", "red")];
+let selected = 0;
+function renderLog() {
+  const fmt = (d) => d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  $("logRows").innerHTML = LOG.map((r, i) => `
+    <tr tabindex="0" aria-selected="${i === selected}" data-i="${i}">
+      <td class="when">${fmt(r.endedAt)}</td>
+      <td class="num">${esc(r.number)}</td>
+      <td>${REASONS[r.outcome] || REASONS.unknown}</td>
+      <td class="col-answered">${r.answeredBy ? ANSWERED[r.answeredBy] : "Nothing"}</td>
+      <td class="col-dur">${r.durationS == null ? "—" : mmss(r.durationS)}</td>
+      <td>${r.blocked.length ? `<span class="flag amber"><span class="dot" data-c="amber"></span>${r.blocked.length}</span>` : ""}${r.disclosureLeftOwed || !r.clean ? `<span class="flag red"><span class="dot" data-c="red"></span>${r.disclosureLeftOwed ? "Disclosure" : "Not clean"}</span>` : ""}${!r.blocked.length && r.clean && !r.disclosureLeftOwed ? `<span style="color:var(--legend-dim)">—</span>` : ""}</td>
+    </tr>`).join("");
+  $("logRows").querySelectorAll("tr").forEach((tr) => {
+    const pick = () => { selected = +tr.dataset.i; renderLog(); };
+    tr.onclick = pick;
+    tr.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } };
+  });
+  const box = el("div");
+  renderAsRun(box, LOG[selected]);
+  box.querySelector(".kept").after(el("p", "hint-dark", "Sample report. The names, numbers and timings are synthetic."));
+  $("logDetail").replaceChildren(box);
+}
+
+/* ============ views ============ */
+function setView(v) {
+  if (S.stage === "live") return;
+  S.view = v;
+  room.dataset.view = v;
+  document.querySelectorAll(".modekey").forEach((k) => k.setAttribute("aria-pressed", String(k.dataset.view === v)));
+  if (S.stage === "ended") resetCall();
+  update();
+}
+document.querySelectorAll(".modekey").forEach((k) => (k.onclick = () => setView(k.dataset.view)));
+
+function resetCall() {
+  S.run++;
+  S.stage = "standby";
+  room.dataset.stage = "standby";
+  S.endedElapsed = 0;
+  S.lastSplit = null;
+  $("feed").innerHTML = ""; $("asrun").hidden = true; $("split").hidden = true;
+  setPhase(null);
+  S.answeredBy = null; S.turns = 0; S.interruptions = 0; S.falseInts = 0; S.replies = [];
+  lastSec = -1;
+  renderSheet(); update();
+}
+
+function update() {
+  if (S.stage === "standby") {
+    $("monTitle").textContent = S.view === "rehearsal" ? "Rehearsal standby" : "Standby";
+    const b = S.brief;
+    const n = b && normalise(b.number);
+    $("monSub").textContent = S.view === "rehearsal" ? `${S.persona} answers. No telephone.` : b ? `${n ? pretty(n) : "No number"}${b.place ? ` · ${b.place}` : ""}` : "No rundown";
+    const hint = $("numberHint");
+    if (hint && b) {
+      const g = gate(b.number, b.lineType);
+      hint.textContent = S.view === "rehearsal" ? "Rehearsal does not dial it." : g.because;
+      hint.className = `hint${g.allowed || S.view === "rehearsal" ? "" : " bad"}`;
+    }
+  }
+  if (S.stage !== "live") { const sheet = $("sheetState"); if (S.stage === "standby" && S.brief) sheet.textContent = "Editable"; }
+  renderStandby(); renderKey(); renderPersonas(); renderCart(); renderSplit(); renderReadouts();
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.shiftKey && (e.key === "H" || e.key === "h") && S.stage === "live" && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+    S.phaseBeforeEnd = S.phase;
+    endCall("caller-hung-up", "Ended from the console.");
+  }
+});
+$("key").addEventListener("click", () => { if (S.stage === "live") S.phaseBeforeEnd = S.phase; }, true);
+
+/* ============ boot ============ */
+buildClock(); buildTally(); renderSheet(); renderLog(); update(); setPhase(null);
+requestAnimationFrame(tickClock);
+setTimeout(() => { S.engines = "warm"; update(); }, 2500);
+</script>
+</body>
+</html>
