@@ -21,8 +21,9 @@ export function pythonBin(): string {
   return join(BRIDGE, ".venv", "bin", "python3");
 }
 
-export function cudaLibraryPath(): string {
-  const root = join(BRIDGE, ".venv", "lib");
+/** The CUDA wheels of one virtual environment: the bridge's own, or Kokoro's. */
+export function cudaLibraryPath(venv = join(BRIDGE, ".venv")): string {
+  const root = join(venv, "lib");
   const dirs: string[] = [];
   for (const version of readdirSync(root)) {
     const nvidia = join(root, version, "site-packages", "nvidia");
@@ -46,10 +47,11 @@ export class Worker {
     private readonly script: string,
     private readonly args: string[],
     private readonly env: Record<string, string> = {},
+    private readonly python = pythonBin(),
   ) {}
 
   async start(): Promise<Record<string, unknown>> {
-    this.child = Bun.spawn([pythonBin(), join(BRIDGE, "speech", this.script), ...this.args], {
+    this.child = Bun.spawn([this.python, join(BRIDGE, "speech", this.script), ...this.args], {
       stdin: "pipe",
       stdout: "pipe",
       stderr: "inherit",

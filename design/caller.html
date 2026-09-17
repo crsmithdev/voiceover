@@ -280,6 +280,7 @@ textarea.field { line-height: 1.45; overflow: hidden; }
   border-bottom: 1px solid var(--rule);
 }
 .mon-head .bezel { align-self: center; }
+.mon-head .listen { margin-left: auto; align-self: center; flex: none; }
 .mon-head h2 { white-space: nowrap; font: 700 20px/1 var(--cond); letter-spacing: .1em; text-transform: uppercase; }
 .mon-sub { color: var(--legend-dim); font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mon-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 24px 24px; }
@@ -682,7 +683,7 @@ tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 2px 0 0 var(--
     <button class="modekey" data-view="rehearsal" aria-pressed="false">Rehearsal</button>
     <button class="modekey" data-view="log" aria-pressed="false">Log</button>
   </nav>
-  <p class="proto">Prototype. The call, the timings and the log are synthetic.</p>
+  <p class="proto" id="proto">Prototype. The call, the timings and the log are synthetic.</p>
   <div class="onair" id="onair" data-lit="off" role="status" aria-live="polite">On air</div>
 </header>
 
@@ -702,6 +703,7 @@ tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 2px 0 0 var(--
       <span class="dot bezel" id="bezel"></span>
       <h2 id="monTitle">Standby</h2>
       <span class="mon-sub" id="monSub"></span>
+      <button class="modekey listen" id="listen" type="button" aria-pressed="true" hidden>Listen in</button>
     </div>
     <div class="mon-scroll" id="monScroll">
       <div id="standby"></div>
@@ -973,7 +975,9 @@ function preflight() {
     rehearsal
       ? { name: "Rate", c: "green", verdict: "Not counted", why: "Only real calls count toward the hourly limit." }
       : { name: "Rate", c: S.dialledThisHour < RATE_LIMIT ? "green" : "red", verdict: `${RATE_LIMIT - S.dialledThisHour} left this hour`, why: `Limit ${RATE_LIMIT} an hour, from rate.ts. Spec 17 still marks the number as undecided.` },
-    { name: "Engines", c: S.engines === "warm" ? "green" : "amber", verdict: S.engines === "warm" ? "Warm" : "Warming", why: S.engines === "warm" ? "Transcriber and voice loaded on the card." : "Loading the transcriber and the voice. This takes up to 20 seconds." },
+    rehearsal && LIVE.on
+      ? { name: "Engines", c: "green", verdict: "Load at take", why: "Both agents load a transcriber, a voice and a brain when you take it, in about 10 seconds." }
+      : { name: "Engines", c: S.engines === "warm" ? "green" : "amber", verdict: S.engines === "warm" ? "Warm" : "Warming", why: S.engines === "warm" ? "Transcriber and voice loaded on the card." : "Loading the transcriber and the voice. This takes up to 20 seconds." },
     { name: "Rundown", c: b && b.goal.trim() && facts.length ? "green" : "red", verdict: b && b.goal.trim() && facts.length ? "Ready" : "Incomplete", why: !b ? "No rundown." : !b.goal.trim() ? "It needs a goal." : !facts.length ? "It needs at least one fact." : `${facts.length} facts, one goal.` },
   ];
   return { checks, ok: checks.every((c) => c.c === "green"), facts };
@@ -1054,7 +1058,7 @@ function tickClock() {
     $("minutesArc").classList.toggle("past", e >= SOFT_S);
     $("clockCap").textContent = S.stage === "standby" ? "Standby" : S.stage === "ended" ? "Ended" : e >= SOFT_S ? "Past soft limit" : `Soft in ${mmss(SOFT_S - e)}`;
     $("clock").setAttribute("aria-label", `Elapsed ${mmss(e)}`);
-    if (S.stage === "live" && e >= SOFT_S && !S.soft) softLimit();
+    if (S.stage === "live" && e >= SOFT_S && !S.soft && !liveRehearsal()) softLimit();
   }
   requestAnimationFrame(tickClock);
 }
@@ -1095,15 +1099,15 @@ function renderKey() {
     key.disabled = !ok;
     const n = S.brief ? normalise(S.brief.number) : null;
     key.innerHTML = rehearsal
-      ? `<span class="big">Take</span><span class="small">Start a rehearsal. No telephone.</span>`
+      ? `<span class="big">Take</span><span class="small">${LIVE.on ? "Start a live rehearsal: the real caller against the receiver." : "Start a rehearsal. No telephone."}</span>`
       : `<span class="big">Take</span><span class="small">${ok ? `Dial ${pretty(n)}` : "The preflight must pass first"}</span>`;
-    key.onclick = () => (rehearsal ? startRehearsal() : startCall());
+    key.onclick = () => (rehearsal ? (LIVE.on ? startLiveRehearsal() : startRehearsal()) : startCall());
   } else if (S.stage === "live") {
     key.className = "key dump";
     key.disabled = false;
     well.classList.add("guarded");
     key.innerHTML = `<span class="big">Hang up</span><span class="small">Ends the call now. The report is still written. <kbd>Shift</kbd> <kbd>H</kbd></span>`;
-    key.onclick = () => endCall("operator-hung-up");
+    key.onclick = () => hangUpNow();
   } else {
     key.className = "key reset";
     key.disabled = false;
@@ -1207,7 +1211,7 @@ function freshCall() {
   renderSheet(); renderStandby(); renderKey(); renderPersonas(); renderCart();
   const b = S.brief;
   $("monTitle").textContent = S.view === "rehearsal" ? "Rehearsal" : "On air";
-  $("monSub").textContent = S.view === "rehearsal" ? `${S.persona} answers. No telephone.` : `${pretty(normalise(b.number))}${b.place ? ` · ${b.place}` : ""}`;
+  $("monSub").textContent = S.view === "rehearsal" ? `${personaLabel()} answers. No telephone.` : `${pretty(normalise(b.number))}${b.place ? ` · ${b.place}` : ""}`;
   $("onair").dataset.lit = S.view === "rehearsal" ? "rehearsal" : "air";
   $("bezel").dataset.c = S.view === "rehearsal" ? "amber" : "red";
   $("onair").textContent = S.view === "rehearsal" ? "Rehearsal" : "On air";
@@ -1272,7 +1276,7 @@ function currentReport() {
   const phaseAtEnd = S.phaseBeforeEnd || "closing";
   return {
     number: S.view === "rehearsal" ? "Rehearsal" : pretty(normalise(b.number)),
-    place: S.view === "rehearsal" ? `${S.persona} answered` : b.place,
+    place: S.view === "rehearsal" ? `${personaLabel()} answered` : b.place,
     goal: b.goal,
     outcome: S.endReason,
     answeredBy: S.answeredBy,
@@ -1364,7 +1368,8 @@ function renderPersonas() {
   const live = S.stage === "live";
   const sel = $("plist");
   if (!sel.options.length) {
-    for (const name of Object.keys(PERSONAS)) sel.append(new Option(name, name));
+    const list = LIVE.on ? LIVE.personas.map((p) => [p.id, p.name]) : Object.keys(PERSONAS).map((n) => [n, n]);
+    for (const [value, label] of list) sel.append(new Option(label, value));
     sel.onchange = () => { S.persona = sel.value; update(); };
   }
   sel.value = S.persona;
@@ -1495,15 +1500,27 @@ async function softLimit() {
   finally { busy = false; renderCart(); }
 }
 function renderCart() {
-  const live = S.view === "rehearsal" && S.stage === "live" && !busy && ["listening"].includes(S.phase);
   const keys = $("cartkeys");
-  if (!keys.childElementCount) {
-    CART.forEach(([label, fn], i) => {
-      const b = el("button", "cartkey", label);
-      b.onclick = () => farEnd(fn);
-      keys.append(b);
-    });
+  const mode = LIVE.on ? "live" : "sim";
+  if (keys.dataset.mode !== mode) {
+    keys.dataset.mode = mode;
+    keys.innerHTML = "";
+    if (LIVE.on) {
+      for (const [label, id] of LIVE_CART) {
+        const b = el("button", "cartkey", label);
+        b.onclick = () => api("/api/rehearsal/challenge", { id }).catch((e) => addEvent(e.message, "red"));
+        keys.append(b);
+      }
+    } else {
+      CART.forEach(([label, fn]) => {
+        const b = el("button", "cartkey", label);
+        b.onclick = () => farEnd(fn);
+        keys.append(b);
+      });
+    }
   }
+  const live = S.view === "rehearsal" && S.stage === "live" && (LIVE.on ? LIVE.started : !busy && ["listening"].includes(S.phase));
+  $("listen").hidden = !(LIVE.on && S.view === "rehearsal");
   keys.querySelectorAll("button").forEach((b) => (b.disabled = !live));
   $("talkInput").disabled = !live;
   $("talkSend").disabled = !live;
@@ -1513,8 +1530,165 @@ $("talkback").onsubmit = (e) => {
   const line = $("talkInput").value.trim();
   if (!line) return;
   $("talkInput").value = "";
+  if (LIVE.on) {
+    api("/api/rehearsal/talkback", { text: line }).catch((err) => addEvent(err.message, "red"));
+    $("talkInput").focus();
+    return;
+  }
   farEnd((run) => speakAsThem(run, line)).then(() => $("talkInput").focus());
 };
+
+/* ============ live rehearsal, when scripts/ui.ts serves the page ============ */
+const LIVE = { on: false, personas: [], es: null, lines: new Map(), started: false, room: null, wantListen: true, lk: null };
+const LIVE_CART = [
+  ["Ask if it's a machine", "machine"], ["Ask for a fact it lacks", "unknown"], ["Ask for the card", "card"],
+  ["Talk over it", "talkover"], ["Coughing fit", "cough"], ["Go quiet", "quiet"], ["Put it on hold", "hold"],
+  ["Transfer", "transfer"], ["Jump to 7:50", "soft"], ["Hang up on it", "farhangup"],
+];
+function liveRehearsal() { return LIVE.on && S.view === "rehearsal"; }
+function personaLabel() {
+  return LIVE.on ? (LIVE.personas.find((p) => p.id === S.persona)?.name ?? S.persona) : S.persona;
+}
+async function api(path, body) {
+  const res = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || res.statusText);
+  return json;
+}
+async function detectLive() {
+  if (location.protocol === "file:") return;
+  try {
+    const health = await api("/api/health");
+    if (health.rehearsal !== "live") return;
+    LIVE.personas = await api("/api/personas");
+  } catch { return; }
+  LIVE.on = true;
+  S.persona = LIVE.personas[0].id;
+  $("plist").innerHTML = "";
+  $("proto").textContent = "Rehearsal is live: two agents in a local room. On air and the log are still synthetic.";
+  update();
+}
+function briefForServer() {
+  const b = S.brief;
+  const facts = {};
+  const releasable = [];
+  for (const [key, value, give] of b.facts) {
+    if (!key.trim() || !value.trim()) continue;
+    facts[key.trim()] = value.trim();
+    if (give) releasable.push(key.trim());
+  }
+  const limits = b.limits.split("\n").map((l) => l.trim()).filter(Boolean);
+  return { goal: b.goal.trim(), facts, releasable, limits, background: b.background.trim() || undefined };
+}
+async function startLiveRehearsal() {
+  freshCall();
+  LIVE.lines = new Map();
+  LIVE.started = false;
+  renderCart();
+  $("monSub").textContent = `${personaLabel()} answers. A local room, no telephone.`;
+  if (!LIVE.es) {
+    LIVE.es = new EventSource("/api/events");
+    LIVE.es.onmessage = (m) => onLive(JSON.parse(m.data));
+  }
+  try {
+    const { room: name } = await api("/api/rehearsal/start", { brief: briefForServer(), persona: S.persona });
+    LIVE.room = name;
+  } catch (e) {
+    addEvent(`It did not start: ${e.message}`, "red");
+    endCall("unknown");
+  }
+}
+function tidy(text) { return text.replace(/([.?!,])(?=[A-Za-z])/g, "$1 ").trim(); }
+function onLive(e) {
+  if (!liveRehearsal() || S.stage !== "live") return;
+  switch (e.type) {
+    case "status": addEvent(e.text); break;
+    case "error": addEvent(e.text, "red"); break;
+    case "started":
+      LIVE.started = true;
+      S.startedAt = performance.now();
+      S.offset = 0;
+      lastSec = -1;
+      S.answeredBy = e.answers;
+      renderReadouts(); renderCart();
+      if (LIVE.wantListen) listen(true);
+      break;
+    case "phase": setPhase(e.phase); break;
+    case "event":
+      addEvent(e.text, e.tone);
+      if (/^Asked whether it is a machine/.test(e.text)) S.disclosureOwed = true;
+      break;
+    case "line": {
+      let span = LIVE.lines.get(e.id);
+      if (!span) { span = addLine(e.who); LIVE.lines.set(e.id, span); }
+      span.textContent = tidy(e.text);
+      span.classList.toggle("w-partial", !e.final);
+      if (e.final) (e.who === "caller" ? S.said : S.heard).push(tidy(e.text));
+      scrollFeed();
+      break;
+    }
+    case "reply": {
+      const r = { pause: e.pause, stt: e.stt, brain: e.brain, voice: e.voice, total: e.total };
+      S.replies.push(r); S.lastSplit = r;
+      addGap(r); renderSplit(); renderReadouts();
+      break;
+    }
+    case "counts":
+      S.turns = e.turns; S.interruptions = e.interruptions; S.falseInts = e.falseInterruptions;
+      renderReadouts();
+      break;
+    case "clock": S.offset = e.offsetMs / 1000; lastSec = -1; break;
+    case "ended":
+      LIVE.started = false;
+      S.phaseBeforeEnd = e.report.phaseAtEnd;
+      S.disclosureOwed = e.report.disclosureLeftOwed;
+      S.answeredBy = e.report.answeredBy;
+      listen(false, true);
+      endCall(e.report.outcome, `The report is at ${e.path}.`);
+      break;
+  }
+}
+function hangUpNow() {
+  if (liveRehearsal()) {
+    api("/api/rehearsal/hangup", {}).catch((e) => addEvent(e.message, "red"));
+    return;
+  }
+  endCall("operator-hung-up");
+}
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) return resolve();
+    const tag = Object.assign(document.createElement("script"), { src, onload: resolve, onerror: reject });
+    document.head.append(tag);
+  });
+}
+async function listen(on, keepPreference) {
+  if (!keepPreference) LIVE.wantListen = on;
+  $("listen").setAttribute("aria-pressed", String(LIVE.wantListen));
+  if (!on) {
+    if (LIVE.lk) { await LIVE.lk.disconnect(); LIVE.lk = null; }
+    document.querySelectorAll("audio[data-listen]").forEach((a) => a.remove());
+    return;
+  }
+  if (LIVE.lk || !LIVE.started) return;
+  try {
+    await loadScript("https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js");
+    const { url, token } = await api("/api/rehearsal/listen");
+    const lk = new LivekitClient.Room();
+    lk.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => {
+      if (track.kind !== "audio") return;
+      const audio = track.attach();
+      audio.dataset.listen = "1";
+      document.body.append(audio);
+    });
+    await lk.connect(url, token);
+    await lk.startAudio();
+    LIVE.lk = lk;
+  } catch (e) {
+    addEvent(`Listening failed: ${e.message}`, "red");
+  }
+}
+$("listen").onclick = () => listen(!LIVE.wantListen);
 
 /* ============ log archive (samples) ============ */
 const day = (d, h, m) => new Date(2026, 8, d, h, m);
@@ -1603,7 +1777,7 @@ function update() {
     $("monTitle").textContent = S.view === "rehearsal" ? "Rehearsal standby" : "Standby";
     const b = S.brief;
     const n = b && normalise(b.number);
-    $("monSub").textContent = S.view === "rehearsal" ? `${S.persona} answers. No telephone.` : b ? `${n ? pretty(n) : "No number"}${b.place ? ` · ${b.place}` : ""}` : "No rundown";
+    $("monSub").textContent = S.view === "rehearsal" ? `${personaLabel()} answers. No telephone.` : b ? `${n ? pretty(n) : "No number"}${b.place ? ` · ${b.place}` : ""}` : "No rundown";
     const hint = $("numberHint");
     if (hint && b) {
       const g = gate(b.number, b.lineType);
@@ -1618,13 +1792,14 @@ function update() {
 document.addEventListener("keydown", (e) => {
   if (e.shiftKey && (e.key === "H" || e.key === "h") && S.stage === "live" && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
     S.phaseBeforeEnd = S.phase;
-    endCall("operator-hung-up");
+    hangUpNow();
   }
 });
 $("key").addEventListener("click", () => { if (S.stage === "live") S.phaseBeforeEnd = S.phase; }, true);
 
 /* ============ boot ============ */
 buildClock(); buildTally(); renderSheet(); renderLog(); update(); setPhase(null);
+detectLive();
 requestAnimationFrame(tickClock);
 setTimeout(() => { S.engines = "warm"; update(); }, 2500);
 </script>

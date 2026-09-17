@@ -437,7 +437,8 @@ That needs the speech-to-text and the brain wired into the same call.
 
 14.5 Build the audio fixtures and the layer two test fifth, with the numbers the real call gave.
 14.6 Add the test personalities sixth.
-14.7 Consider layer three last, and only if a gap remains (see 12.8).
+14.7 Consider layer three last, and only if a gap remains (see 12.8). Built on
+17 September 2026 at Chris's request, ahead of that gap (see 18.15).
 
 ## 15. Measurements
 
@@ -589,6 +590,24 @@ measurements in 15.16 must too.
 15.15.6 Count what a barge-in turned out to be: speech, a command, or nothing.
 "Nothing" is the false interruption of 7.2.4, and it is the one that costs a
 sentence for no reason. The bridge counts these and this product does not.
+
+15.15.7 **The first rehearsals, 17 September 2026** (18.15). Five runs of the real
+caller against the receiver, in a local room, on synthetic briefs. Three things
+came out of them.
+
+15.15.8 The transcriber turned a coughing fit into the words "B.I.S.S. Sorry."
+A hallucinated transcript passes the word test of 7.2.3, so the test that 7.4
+calls the protection against noise can be defeated by the transcriber itself.
+It happened once in two cough challenges.
+
+15.15.9 The transcription delay the framework reports is 0.7 to 1.8 seconds,
+against the 112 to 124 milliseconds of 15.10. The two measure different
+things: 15.10 times the model on a file, and the framework times from the end of
+speech to a final transcript, which includes the voice detector's wait for
+silence. Replies arrived 1.7 to 2.9 seconds after the other side stopped.
+
+15.15.10 The caller recorded up to five false interruptions in one rehearsal,
+mostly while the receiver spoke in fragments. Each one resumed.
 
 15.16 **Still to measure, in this order.** The whole path, end to end, on a real telephone leg. The
 transport time both ways. The false-cutoff rate of v1-mini on telephone-grade
@@ -760,6 +779,32 @@ good, so a clock is not unusable in itself. The judgement is that a stranger on 
 business line is less patient than Chris in his own car, and that a model reading
 the words and the prosody beats a clock on a line where the other party is not
 expecting a machine.
+
+18.15 **Decided. Layer three exists, and the user interface drives it.**
+`bun scripts/ui.ts` serves `design/caller.html` on port 3002, and its Rehearsal
+view runs the real caller of `src/call/session.ts` against a test receiver in a
+local room. The receiver has its own transcriber, a Kokoro voice so it never
+sounds like the caller, and Gemini 2.5 Flash (4.9). It plays one of the eight
+personalities kept by 18.8, or a voicemail machine, or a menu system (12.9).
+Chris steers it with challenges (a machine question, a fact the brief lacks, a
+card number, talking over, a cough, silence, hold music, a transfer, the soft
+limit, a hang up) or types its words himself, and listens in from the browser.
+Reports go to `~/.caller/rehearsals`, never beside real calls. On air and the
+log in the page are still simulated.
+
+18.15.1 The local LiveKit server runs in Docker on port 7890, not 7880,
+because the voice bridge's own server holds 7880 with its own keys. Neither
+product uses the other's server, for the reason 18.10 gives for the engines.
+
+18.15.2 A challenge takes the floor: the receiver stops hearing, drops what it
+had queued, and says fixed words that cannot be interrupted. A reply generated
+from an instruction was swallowed by the receiver's own next turn, and a test
+that sometimes does not happen proves nothing.
+
+18.15.3 The rehearsal tells the state machine about each turn after the
+framework has handled it. `scripts/call.ts` does not, so on a real call the
+disclosure debt of 10.4 is set and never cleared, and the report warns about
+any call where the question was asked. That is a fault to fix there.
 
 18.13 **Decided.** The pipeline uses the framework's `SentenceTokenizer`, because
 the TTS stream adapter takes one and a second rule inside the same call would

@@ -48,7 +48,7 @@ export class PiperTTS extends tts.TTS {
   }
 
   synthesize(text: string, connOptions?: APIConnectOptions, abortSignal?: AbortSignal): tts.ChunkedStream {
-    return new PiperChunkedStream(text, this, connOptions, abortSignal);
+    return new FileChunkedStream(text, this, connOptions, abortSignal);
   }
 
   stream(): never {
@@ -60,12 +60,17 @@ export class PiperTTS extends tts.TTS {
   }
 }
 
-class PiperChunkedStream extends tts.ChunkedStream {
-  label = "caller.PiperChunkedStream";
+/** A voice that writes a whole file for a sentence: Piper, or Kokoro for a receiver. */
+export interface FileVoice extends tts.TTS {
+  say(text: string): Promise<{ samples: Int16Array; sampleRate: number }>;
+}
+
+export class FileChunkedStream extends tts.ChunkedStream {
+  label = "caller.FileChunkedStream";
 
   constructor(
     text: string,
-    private readonly voice: PiperTTS,
+    private readonly voice: FileVoice,
     connOptions?: APIConnectOptions,
     abortSignal?: AbortSignal,
   ) {
@@ -75,7 +80,7 @@ class PiperChunkedStream extends tts.ChunkedStream {
   protected async run(): Promise<void> {
     const { samples, sampleRate } = await this.voice.say(this.inputText);
     const size = (sampleRate * FRAME_MS) / 1000;
-    const requestId = `piper-${Date.now()}`;
+    const requestId = `${this.voice.label}-${Date.now()}`;
     for (let at = 0; at < samples.length; at += size) {
       if (this.abortSignal.aborted) break;
       // frameAt copies. A subarray would publish the start of the sentence for

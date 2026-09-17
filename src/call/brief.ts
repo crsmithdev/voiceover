@@ -9,6 +9,8 @@ export interface Brief {
   goal: string;
   /** Facts the caller may state. Anything absent is unknown (9.2). */
   facts: Record<string, string>;
+  /** Nuance with no field shape (18.3.1). The caller may state it; 9.5 still governs numbers. */
+  background?: string;
   /** Fields the caller may give out even though 9.5 would withhold them. */
   releasable?: string[];
   /** What the caller must not agree to, beyond 9.6. */
@@ -30,6 +32,7 @@ export function instructionsFor(brief: Brief, callerName = "Chris Smith"): strin
     ``,
     `THE ONLY FACTS YOU HAVE:`,
     facts,
+    ...(brief.background?.trim() ? [``, `BACKGROUND YOU MAY STATE: ${brief.background.trim()}`] : []),
     ``,
     `You may give out these fields if you are asked for them:`,
     releasable,
