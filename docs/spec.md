@@ -231,6 +231,13 @@ native binding is present and loadable; it is the executor that is missing.
 Measured on 13 September 2026 against `@livekit/agents` 1.8.1. So the caller
 either runs as a framework worker or gives up 8.4 (see 18.14).
 
+8.5.1 **Answered on 17 September 2026.** The caller runs as a worker job
+(18.14), and the model runs with it: six rehearsals reported first predictions
+of 0.34, 0.51, 0.67, 0.70, 0.74 and 0.81. A prediction that is not 1.0 is the
+proof, because 8.5 is exactly the case where every prediction is pinned to 1.0.
+A standalone session still behaves as 8.5 says, and `buildSession` warns only
+there.
+
 8.6 The memory footprint of the audio v1-mini model is not published. Revision 2
 gave a figure that belongs to the older text model. Measure it.
 
@@ -362,12 +369,21 @@ by construction. It finds problems between two local processes and little else.
 Build it after the first real call, and only if layer one and layer four leave a
 gap.
 
+12.4.1 **The layer two runner.** `bun scripts/layer2.ts` runs the bench of
+15.10 over the kept fixtures and asserts on the figures: at most 3 words adrift
+on the telephone band, at most 8 with the seeded noise, and a median
+transcription under 200 milliseconds. It passes because 15.12 made the corpus
+stable.
+
 12.8.1 **The runner.** `bun scripts/rehearse.ts` drives scripted rehearsals
 without a browser: a personality, a brief, a list of challenges, and assertions
 on the report. It checks the outcome, that no question about being a machine is
 left owed, that a deferred detail reached the report, that the caller said what
 the case expects, and that no withheld value was ever spoken. Run it after a
-change to a prompt, the caller or the pipeline.
+change to a prompt, the caller or the pipeline. Six cases as of 17 September
+2026: the disclosure question with a withheld card, a fact the rundown does not
+hold, a menu that transfers to a person, hold music and talking over, the soft
+limit, and a voicemail machine. All six passed on the worker path.
 
 12.9 Test personalities include: a slow talker, an old-sounding person, a quiet
 person, a rambler, a person who trails off, a person who says "uh-huh" in the
@@ -423,6 +439,12 @@ non-streaming, and the framework puts a voice detector in front of the
 speech-to-text and a sentence rule in front of the voice. This is the supported
 way to use an engine that cannot stream, and it means neither adapter carries
 timing logic of its own.
+
+13.6.3 **The session now asks.** A real call runs the framework's answering
+machine detection, so the report can say a person, a voicemail box, a menu or a
+dead line instead of "unknown". It is wired and untried: no real call has been
+placed since. A rehearsal does not run it, because the rehearsal already knows
+what answered.
 
 13.6.2 One qualifier, learned on the first call. The classification of who
 answered belongs to the *agent session*, not to the act of dialling. A script
@@ -716,7 +738,7 @@ dependency that can move without notice.
 | Constant | Value | Source | Section |
 |---|---|---|---|
 | Interruption, least length | 500 ms | `turnHandling.interruption.minDuration` | 7.2.2 |
-| Interruption, least words | **1** | framework says 0; raised on purpose | 7.2.3 |
+| Interruption, least words | **2** | framework says 0; raised on purpose | 7.2.3 |
 | False interruption timeout | 2000 ms | `turnHandling.interruption.falseInterruptionTimeout` | 7.2.4 |
 | Resume after a false interruption | On | `turnHandling.interruption.resumeFalseInterruption` | 7.2.5 |
 | Endpointing, least delay | 500 ms | `turnHandling.endpointing.minDelay` | 8.7 |
@@ -727,14 +749,23 @@ dependency that can move without notice.
 | Audio recording, with its announcement | Off | this product | 10.6 |
 | Soft call limit | 8 minutes | this product | 11.2 |
 | Hard call limit | 12 minutes | this product | 11.3 |
-| Calls in an hour | To decide | this product | 16.5 |
+| Calls in an hour | 6 | this product | 16.5 |
 
-17.3 **One departure from a default, on purpose.** The framework asks for zero
-words before an interruption counts, so sound alone stops the agent. Clause 7.4
-makes the word test the defence against a speakerphone at the other end feeding
-the agent its own voice. That defence needs at least one word, so this product
-sets one. Revisit it after a real call: one word also delays a genuine
-interruption until the speech-to-text produces something.
+17.3 **One departure from a default, on purpose, and now two words.** The
+framework asks for zero words before an interruption counts, so sound alone
+stops the agent. Clause 7.4 makes the word test the defence against a
+speakerphone feeding the agent its own voice. One word was not enough: the
+transcriber turned a coughing fit into "B.I.S.S. Sorry." (15.15.8), and a
+hallucination of one or two words passes a one-word test. Two words is the
+setting from 17 September 2026. The cost is real and small: a genuine one-word
+barge-in ("Stop!") is treated as a false interruption, so the sentence resumes
+over the other party, and a real interruption waits for a second word. Every
+form of the question in 10.2 is longer than two words.
+
+17.3.1 **The hourly limit is 6.** Nothing else bounds repetition: the carrier
+caps one call and the day's spend, and the hard limit caps one call, but a fault
+that redials after each failure can ring the same stranger many times inside
+that budget. The limit protects the person who is called.
 
 17.4 Two figures disagree between the vendor's prose and its code. The
 documentation says the detector needs a voice detector with a silence floor of
@@ -806,11 +837,35 @@ ones, and both unpack into the same directory.
 18.12.2 The caller does not speak with the bridge's voice. One voice for the
 assistant that talks to Chris and another for the one that talks for him keeps it
 clear whose voice is whose.
+
+18.12.3 **Built on 17 September 2026.** The caller speaks with Kokoro.
+`CALLER_KOKORO_VOICE` names the voice and `am_michael` is the default until
+Chris picks by ear; `bun scripts/voices.ts` renders each candidate twice, as it
+comes and through the telephone band of 12.5, because a voice that is pleasant
+at 24 kHz can lose what makes it pleasant at 8. `CALLER_TTS=piper` returns to
+the bridge's voice. Kokoro made that sentence in 190 to 220 milliseconds.
 18.14 **Decided. The caller runs as a framework worker.** 8.5 is the finding: a
 standalone session never loads the local end-of-turn model and commits turns on a
 clock instead. A worker is a daemon that receives a job and joins a room, so the
 dial becomes a separate step that creates the room and dispatches to it. That is
 the framework's own shape and it restores 8.4.
+
+18.14.3 **Built on 17 September 2026.** `src/call/agent.ts` is the job:
+`bun src/call/agent.ts dev` registers a worker named `caller`, and the user
+interface starts one for each deployment it needs, the local server for a
+rehearsal and the cloud project for a real call. A dispatch carries the whole
+call in its metadata: the brief, where to post what happens, where the report
+goes, and whose audio to listen to. The job writes the report itself, from local
+state, which is what 11.4 asks for. A command reaches the job as a data message
+on the room, which is how the console hangs up, how a rehearsal moves the clock,
+and how it names an ending only the rehearsal knows.
+
+18.14.4 Two findings from building it, both about identity. A job joins as
+`agent-<job id>`, not as a name this product chooses, so nothing may wait for a
+participant called "caller". And the framework accepts a standard, SIP or
+connector participant by default, never an agent, so the test receiver heard
+silence until its `participantKinds` included `AGENT`. Neither is written down
+in the vendor's guide.
 
 18.14.2 An attempt on 17 September 2026 to load the local model inside a
 standalone session failed on purpose: the detector reads the inference executor
@@ -823,6 +878,18 @@ good, so a clock is not unusable in itself. The judgement is that a stranger on 
 business line is less patient than Chris in his own car, and that a model reading
 the words and the prosody beats a clock on a line where the other party is not
 expecting a machine.
+
+18.15.4 **On air dials from the user interface, from 17 September 2026.** TAKE
+sends the rundown to the server, which checks the gate of 10.10 and the rate
+limit of 16.5 against the real count, dispatches the caller's job to the cloud
+project, and then dials the number through the trunk of 13.5. The page shows the
+same feed, lamps and report as a rehearsal, because both come from the same
+bridge. HANG UP is a command to the job. Nothing about this path has been tried
+on a telephone yet.
+
+18.15.5 **The log reads what is on disk.** `~/.caller/reports` and
+`~/.caller/rehearsals`, newest first. A report older than 30 days is deleted
+when the list loads, which gives 18.6 its mechanism rather than an intention.
 
 18.15 **Decided. Layer three exists, and the user interface drives it.**
 `bun scripts/ui.ts` serves `design/caller.html` on port 3002, and its Rehearsal

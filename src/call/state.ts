@@ -96,10 +96,10 @@ export const constants: Constants = {
   /**
    * The framework default is 0, which lets sound alone stop the agent. Spec 7.4
    * makes the word test the defence against a speakerphone feeding the agent
-   * its own voice, and that defence needs at least one word. So this is a
-   * deliberate departure from the default, not a copy of it.
+   * its own voice. One word was not enough: the transcriber hallucinates one or
+   * two words out of noise (15.15.8), so the floor is two (17.3).
    */
-  minInterruptionWords: 1,
+  minInterruptionWords: 2,
   falseInterruptionMs: 2000,
   softLimitMs: 8 * 60_000,
   hardLimitMs: 12 * 60_000,

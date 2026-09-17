@@ -12,7 +12,7 @@
 import { voice as voiceNs } from "@livekit/agents";
 import type { AgentSession } from "@livekit/agents";
 import { type CallContext, type Report, buildReport } from "./report.ts";
-import { type CallState, type EndReason, type Event, type Phase, constants, initial, step } from "./state.ts";
+import { type AnsweredBy, type CallState, type EndReason, type Event, type Phase, constants, initial, step } from "./state.ts";
 
 export interface TurnTiming {
   /** End of speech to the turn being committed, the transcriber's time inside it. */
@@ -58,6 +58,11 @@ export class SessionBridge {
   apply(event: Event): void {
     this.state = step(this.state, event, constants).state;
     if (this.state.phase !== "ended") this.lastPhase = this.state.phase;
+  }
+
+  /** 13.6.2: only the session can say what answered, and it learns late. */
+  setAnsweredBy(answered: AnsweredBy): void {
+    this.state = { ...this.state, answeredBy: answered };
   }
 
   /** 9.8: a detail the caller could not give, named by the caller itself. */

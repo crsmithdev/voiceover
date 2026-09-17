@@ -11,7 +11,7 @@
  * What it cannot prove is what 12.8 says: both sides share a clock and skip the
  * network, so the carrier delay, the codec and the echo path stay untested.
  */
-import { AudioFrame, Room, RoomEvent } from "@livekit/rtc-node";
+import { AudioFrame, ParticipantKind, Room, RoomEvent } from "@livekit/rtc-node";
 import {
   Agent,
   AgentSession,
@@ -28,11 +28,9 @@ import { AccessToken } from "livekit-server-sdk";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Brief } from "../call/brief.ts";
-import { SessionBridge } from "../call/bridge.ts";
+import { type Deployment, dispatchCall, ensureWorker, sendCommand } from "../call/dispatch.ts";
 import type { Report } from "../call/report.ts";
-import { writeReport } from "../call/reportStore.ts";
-import { buildSession, type Engines } from "../call/session.ts";
-import { type EndReason, type Phase, constants } from "../call/state.ts";
+import type { AnsweredBy, EndReason, Phase } from "../call/state.ts";
 import { KokoroTTS } from "../speech/kokoro.ts";
 import { WhisperSTT } from "../speech/stt.ts";
 import { prompt } from "../prompts.ts";
@@ -62,7 +60,8 @@ export const REHEARSAL_DIR = process.env.CALLER_REHEARSAL_DIR ?? join(homedir(),
 export type Tone = "amber" | "green" | "red";
 export type UiEvent =
   | { type: "status"; text: string }
-  | { type: "started"; room: string; persona: string; answers: Persona["answers"] }
+  | { type: "started"; room: string; persona?: string; answers?: AnsweredBy }
+  | { type: "answered"; answered: AnsweredBy; because?: string }
   | { type: "phase"; phase: Phase }
   | { type: "line"; id: string; who: "caller" | "them"; text: string; final: boolean }
   | { type: "event"; text: string; tone?: Tone }
@@ -189,91 +188,94 @@ interface Receiver {
 
 export class Rehearsal {
   readonly roomName = `rehearsal-${Date.now()}`;
-  private caller: Engines | null = null;
   private receiver: Receiver | null = null;
-  private callerRoom = new Room();
   private receiverRoom = new Room();
-  private readonly bridge: SessionBridge;
-  private offsetMs = 0;
-  private startedAt = 0;
-  private timer: ReturnType<typeof setInterval> | null = null;
-  private softFired = false;
+  private readonly deployment: Deployment = { url: LIVEKIT_URL, apiKey: DEV_KEY, apiSecret: DEV_SECRET };
   private ended = false;
   private busy = false;
   private persona: Persona;
-  private messageSaid = false;
+  private messageTimer: ReturnType<typeof setTimeout> | null = null;
+  private greeted = false;
+  report: Report | null = null;
 
   constructor(
     private readonly brief: Brief,
     personaId: string,
     private readonly emit: (event: UiEvent) => void,
+    /** Where the caller's job posts what happens. The consumer feeds it back. */
+    private readonly eventsUrl: string,
   ) {
     this.persona = findPersona(personaId);
-    this.bridge = new SessionBridge({
-      onPhase: (phase) => this.emit({ type: "phase", phase }),
-      onLine: (who, text, final, id) => {
-        this.emit({ type: "line", id, who, text, final });
-        if (who === "caller" && this.persona.answers === "voicemail") this.messageSaid = true;
-      },
-      onEvent: (text, tone) => this.emit({ type: "event", text, tone }),
-      onTiming: (t) => this.emit({ type: "reply", pause: t.pause, stt: t.stt, brain: t.brain, voice: t.voice, total: t.total }),
-      onCounts: (c) => this.emit({ type: "counts", ...c }),
-    });
   }
 
   get running(): boolean {
     return !this.ended;
   }
 
-  private elapsed(): number {
-    return Date.now() - this.startedAt + this.offsetMs;
+  /**
+   * What the caller's job posted, handed back by whoever received it. The
+   * rehearsal passes it on and watches for the end.
+   */
+  onCallerEvent(event: UiEvent): void {
+    this.emit(event);
+    if (event.type === "started" && !this.greeted) {
+      this.greeted = true;
+      const who = { person: "a person", voicemail: "a voicemail machine", ivr: "a menu" }[this.persona.answers];
+      this.emit({ type: "event", text: `Answered by ${who}. The rehearsal knows this; no detector ran.`, tone: "green" });
+      void this.receiverGreets().catch((error) =>
+        this.emit({ type: "error", text: `the receiver could not speak: ${error instanceof Error ? error.message : String(error)}` }),
+      );
+    }
+    if (event.type === "line" && event.who === "caller" && event.final && this.persona.answers === "voicemail") {
+      // A machine hangs up a little after the message stops (11.4, 6.3).
+      if (this.messageTimer) clearTimeout(this.messageTimer);
+      this.messageTimer = setTimeout(() => void this.endFromRoom("message-left"), 5000);
+    }
+    if (event.type === "ended") {
+      this.report = event.report;
+      void this.teardown();
+    }
   }
 
   async start(): Promise<void> {
     initializeLogger({ pretty: true, level: "warn" });
     const status = (text: string) => this.emit({ type: "status", text });
     await ensureLivekit(status);
+    // 18.14: the caller runs as a job in its own worker, so the local
+    // end-of-turn model of 8.4 exists at all.
+    await ensureWorker(this.deployment, status);
 
-    status("Loading the caller: transcriber, voice and brain");
-    this.caller = await buildSession(this.brief, { onDeferred: (detail) => this.bridge.noteDeferred(detail) });
     status(`Loading the receiver: ${this.persona.name}`);
     this.receiver = await this.buildReceiver();
-
-    await this.callerRoom.connect(LIVEKIT_URL, await token(this.roomName, "caller", true), { autoSubscribe: true, dynacast: false });
-    await this.receiverRoom.connect(LIVEKIT_URL, await token(this.roomName, "receiver", true), { autoSubscribe: true, dynacast: false });
-
-    this.bridge.attach(this.caller.session);
-    this.wireReceiver(this.receiver.session);
-
-    await this.caller.session.start({
-      agent: this.caller.agent,
-      room: this.callerRoom,
-      inputOptions: { participantIdentity: "receiver" },
+    await this.receiverRoom.connect(LIVEKIT_URL, await token(this.roomName, "receiver", true), {
+      autoSubscribe: true,
+      dynacast: false,
     });
+    this.wireReceiver(this.receiver.session);
+    // No identity here: a job joins as `agent-<job id>`, so the receiver takes
+    // whoever publishes audio. The browser's listener publishes nothing. The
+    // kinds matter: the framework accepts a standard, SIP or connector
+    // participant by default, and the caller is now an agent.
     await this.receiver.session.start({
       agent: this.receiverAgent(this.persona),
       room: this.receiverRoom,
-      inputOptions: { participantIdentity: "caller" },
+      inputOptions: { participantKinds: [ParticipantKind.AGENT, ParticipantKind.STANDARD, ParticipantKind.SIP] },
     });
 
-    this.startedAt = Date.now();
-    this.bridge.apply({ kind: "dial", at: this.startedAt });
     this.emit({ type: "started", room: this.roomName, persona: this.persona.name, answers: this.persona.answers });
     this.emit({ type: "phase", phase: "dialing" });
-    await Bun.sleep(700);
-    this.emit({ type: "phase", phase: "ringing" });
-    await Bun.sleep(1200);
 
-    this.bridge.apply({ kind: "answered", at: Date.now(), by: this.persona.answers });
-    const who = { person: "a person", voicemail: "a voicemail machine", ivr: "a menu" }[this.persona.answers];
-    this.emit({ type: "event", text: `Answered by ${who}. The rehearsal knows this; no detector ran.`, tone: "green" });
-
-    this.timer = setInterval(() => this.tick(), 250);
-    this.callerRoom.on(RoomEvent.ParticipantDisconnected, (p) => {
-      if (p.identity === "receiver") void this.finish("far-end-hung-up");
+    await dispatchCall(this.deployment, this.roomName, {
+      mode: "rehearsal",
+      brief: this.brief,
+      number: `rehearsal: ${this.persona.name}`,
+      events: this.eventsUrl,
+      reportDir: REHEARSAL_DIR,
+      farEnd: "receiver",
+      answered: this.persona.answers,
     });
-
-    await this.receiverGreets();
+    this.emit({ type: "phase", phase: "ringing" });
+    // The line opens when the job says it is on it; the receiver then speaks.
   }
 
   private async buildReceiver(): Promise<Receiver> {
@@ -299,7 +301,7 @@ export class Rehearsal {
         hang_up: llm.tool({
           description: prompt("receiver.tool.hang_up"),
           execute: async () => {
-            setTimeout(() => void this.farEndHangsUp(), 1500);
+            setTimeout(() => void this.endFromRoom("far-end-hung-up"), 1500);
             return "You hang up.";
           },
         }),
@@ -317,12 +319,12 @@ export class Rehearsal {
   private async receiverGreets(): Promise<void> {
     const r = this.receiver;
     if (!r) return;
+    this.emit({ type: "status", text: `${this.persona.name} answers` });
     if (this.persona.answers === "voicemail") {
       await r.session.say(prompt(`persona.${this.persona.id}.greeting`));
       await r.session.say("", { audio: streamOf(beep()), addToChatCtx: false });
       this.emit({ type: "event", text: "The tone. A greeting is a monologue; turn-taking is off until here." });
       r.session.pauseReplyAuthorization();
-      this.messageSaid = false;
       return;
     }
     r.session.say(prompt(`persona.${this.persona.id}.greeting`));
@@ -331,39 +333,6 @@ export class Rehearsal {
   private wireReceiver(s: AgentSession): void {
     const E = voiceNs.AgentSessionEventTypes;
     s.on(E.Error, (ev) => this.emit({ type: "error", text: `receiver: ${String((ev as { error?: unknown }).error)}` }));
-  }
-
-  private tick(): void {
-    if (this.ended) return;
-    const now = this.elapsed();
-    this.bridge.apply({ kind: "tick", at: this.startedAt + now });
-    if (now >= constants.hardLimitMs) {
-      void this.finish("hard-limit");
-      return;
-    }
-    if (now >= constants.softLimitMs && !this.softFired) {
-      this.softFired = true;
-      void this.softLimit();
-    }
-    // A voicemail box that has heard its message hangs up after a quiet spell.
-    if (this.persona.answers === "voicemail" && this.messageSaid && !this.bridge.farEndSpeaking) {
-      this.messageSaid = false;
-      setTimeout(() => void this.finish("message-left"), 4000);
-    }
-  }
-
-  private async softLimit(): Promise<void> {
-    const c = this.caller;
-    if (!c || this.ended) return;
-    this.emit({ type: "event", text: "Soft limit. It closes after the current sentence.", tone: "amber" });
-    this.emit({ type: "phase", phase: "closing" });
-    const handle = c.session.generateReply({
-      instructions: prompt("caller.soft-limit"),
-      allowInterruptions: false,
-    });
-    await handle;
-    await Bun.sleep(1500);
-    await this.finish("soft-limit");
   }
 
   /** A challenge is something the other side does. The caller is never told. */
@@ -430,13 +399,16 @@ export class Rehearsal {
           s.updateAgent(this.receiverAgent(TRANSFER));
           await line(prompt(`persona.${TRANSFER.id}.greeting`));
           break;
-        case "soft":
-          this.offsetMs = Math.max(this.offsetMs, constants.softLimitMs - 10_000 - (Date.now() - this.startedAt));
-          this.emit({ type: "clock", offsetMs: this.offsetMs });
+        case "soft": {
+          // The job owns the limits now, so the jump is a command to it.
+          const jump = 7 * 60_000 + 50_000;
+          await sendCommand(this.deployment, this.roomName, { kind: "jump", ms: jump });
+          this.emit({ type: "clock", offsetMs: jump });
           this.emit({ type: "event", text: "Clock moved to 10 seconds before the soft limit" });
           break;
+        }
         case "farhangup":
-          await this.farEndHangsUp();
+          await this.endFromRoom("far-end-hung-up");
           break;
       }
     } finally {
@@ -452,35 +424,23 @@ export class Rehearsal {
     await r.session.say(text.trim(), { allowInterruptions: false }).waitForPlayout();
   }
 
-  private async farEndHangsUp(): Promise<void> {
-    await this.finish("far-end-hung-up");
+  /** The rehearsal knows how this call ended; the job writes it down. */
+  private async endFromRoom(reason: EndReason): Promise<void> {
+    if (this.ended) return;
+    await sendCommand(this.deployment, this.roomName, { kind: "end", reason }).catch(() => undefined);
   }
 
   async hangUp(): Promise<void> {
-    await this.finish("operator-hung-up");
+    await this.endFromRoom("operator-hung-up");
   }
 
-  private async finish(reason: EndReason): Promise<void> {
+  private async teardown(): Promise<void> {
     if (this.ended) return;
     this.ended = true;
-    if (this.timer) clearInterval(this.timer);
+    if (this.messageTimer) clearTimeout(this.messageTimer);
     this.emit({ type: "phase", phase: "ended" });
-
-    const report = this.bridge.report(
-      reason,
-      { number: `rehearsal: ${this.persona.name}`, goal: this.brief.goal },
-      Date.now(),
-      this.elapsed(),
-    );
-    const path = await writeReport(report, REHEARSAL_DIR).catch((e) => `not written: ${e}`);
-    this.emit({
-      type: "ended",
-      report: { ...report, interruptions: this.bridge.interruptions, falseInterruptions: this.bridge.falseInterruptions },
-      path,
-    });
-
-    await Promise.allSettled([this.caller?.session.close(), this.receiver?.session.close()]);
-    await Promise.allSettled([this.callerRoom.disconnect(), this.receiverRoom.disconnect()]);
-    await Promise.allSettled([this.caller?.close(), this.receiver?.voice.close(), this.receiver?.ears.close()]);
+    await Promise.allSettled([this.receiver?.session.close()]);
+    await Promise.allSettled([this.receiverRoom.disconnect()]);
+    await Promise.allSettled([this.receiver?.voice.close(), this.receiver?.ears.close()]);
   }
 }

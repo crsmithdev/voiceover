@@ -834,7 +834,7 @@ tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 2px 0 0 var(--
     <div class="archive-list">
       <div class="archive-head">
         <h2>As-run log</h2>
-        <p>Sample entries. The real list reads ~/.caller/reports; each report is deleted after 30 days.</p>
+        <p id="logNote">Sample entries. The real list reads ~/.caller/reports; each report is deleted after 30 days.</p>
       </div>
       <table>
         <thead><tr>
@@ -884,8 +884,9 @@ function normalise(input) {
 }
 function gate(number, lineType) {
   const n = normalise(number);
+  const owned = LIVE.on && LIVE.owned.length ? LIVE.owned : OWNED;
   if (!n) return { allowed: false, because: "Not a North American number." };
-  if (OWNED.includes(n)) return { allowed: true, because: "A number you own." };
+  if (owned.includes(n)) return { allowed: true, because: "A number you own." };
   if (lineType === "business") return { allowed: true, because: "The rundown calls it a published business line." };
   return { allowed: false, because: lineType === "unknown"
     ? "The rundown does not say what kind of line this is."
@@ -1059,9 +1060,13 @@ function preflight() {
       : { name: "Gate", c: g.allowed ? "green" : "red", verdict: g.allowed ? "Allowed" : "Refused", why: g.because },
     rehearsal
       ? { name: "Rate", c: "green", verdict: "Not counted", why: "Only real calls count toward the hourly limit." }
-      : { name: "Rate", c: S.dialledThisHour < RATE_LIMIT ? "green" : "red", verdict: `${RATE_LIMIT - S.dialledThisHour} left this hour`, why: `Limit ${RATE_LIMIT} an hour, from rate.ts. Spec 17 still marks the number as undecided.` },
-    rehearsal && LIVE.on
-      ? { name: "Engines", c: "green", verdict: "Load at take", why: "Both agents load a transcriber, a voice and a brain when you take it, in about 10 seconds." }
+      : LIVE.on
+        ? { name: "Rate", c: LIVE.remaining > 0 ? "green" : "red", verdict: `${LIVE.remaining} left this hour`, why: `The limit is ${LIVE.limit} calls in an hour (16.5), and this is the real count.` }
+        : { name: "Rate", c: S.dialledThisHour < RATE_LIMIT ? "green" : "red", verdict: `${RATE_LIMIT - S.dialledThisHour} left this hour`, why: `Limit ${RATE_LIMIT} an hour, from rate.ts.` },
+    LIVE.on && !rehearsal && !LIVE.onAir
+      ? { name: "Line", c: "red", verdict: "Cannot dial", why: LIVE.why ?? "The telephone service is not configured." }
+      : LIVE.on
+      ? { name: "Engines", c: "green", verdict: "Load at take", why: `The caller loads its transcriber, voice and brain in its worker when you take it, in about 10 seconds.${rehearsal ? " The receiver loads too." : ""}` }
       : { name: "Engines", c: S.engines === "warm" ? "green" : "amber", verdict: S.engines === "warm" ? "Warm" : "Warming", why: S.engines === "warm" ? "Transcriber and voice loaded on the card." : "Loading the transcriber and the voice. This takes up to 20 seconds." },
     { name: "Rundown", c: b && b.goal.trim() && facts.length ? "green" : "red", verdict: b && b.goal.trim() && facts.length ? "Ready" : "Incomplete", why: !b ? "No rundown." : !b.goal.trim() ? "It needs a goal." : !facts.length ? "It needs at least one fact." : `${facts.length} facts, one goal.` },
   ];
@@ -1185,8 +1190,9 @@ function renderKey() {
     const n = S.brief ? normalise(S.brief.number) : null;
     key.innerHTML = rehearsal
       ? `<span class="big">Take</span><span class="small">${LIVE.on ? "Start a live rehearsal: the real caller against the receiver." : "Start a rehearsal. No telephone."}</span>`
-      : `<span class="big">Take</span><span class="small">${ok ? `Dial ${pretty(n)}` : "The preflight must pass first"}</span>`;
-    key.onclick = () => (rehearsal ? (LIVE.on ? startLiveRehearsal() : startRehearsal()) : startCall());
+      : `<span class="big">Take</span><span class="small">${ok ? `${LIVE.onAir ? "Dial" : "Simulate"} ${pretty(n)}` : "The preflight must pass first"}</span>`;
+    key.onclick = () =>
+      rehearsal ? (LIVE.on ? startLiveRehearsal() : startRehearsal()) : LIVE.on && LIVE.onAir ? startLiveCall() : startCall();
   } else if (S.stage === "live") {
     key.className = "key dump";
     key.disabled = false;
@@ -1403,6 +1409,19 @@ function renderAsRun(box, r, { withFeedNote } = {}) {
   if (withFeedNote) return;
   const h = el("h4", "transcript-head", "Transcript");
   const ol = el("ol", "feed");
+  if (!r.lines && (r.said.length || r.heard.length)) {
+    // 11.4 keeps the two sides as lists, not as one ordered conversation.
+    for (const [who, lines] of [["caller", r.said], ["them", r.heard]]) {
+      for (const text of lines) {
+        const li = el("li", `line ${who}`);
+        li.style.animation = "none";
+        li.append(el("span", "tc", ""), el("span", "who", who === "caller" ? "Caller" : "Them"), el("span", "text", text));
+        ol.append(li);
+      }
+    }
+    box.append(h, el("p", "hint-dark", "The report keeps each side as a list, not as one ordered conversation."), ol);
+    return;
+  }
   for (const l of r.lines || []) {
     if (l.kind === "gap") { const d = el("div", "gap"); d.innerHTML = gapText(l.r); ol.append(d); continue; }
     const li = el("li", `line ${l.kind}`);
@@ -1624,13 +1643,15 @@ $("talkback").onsubmit = (e) => {
 };
 
 /* ============ live rehearsal, when scripts/ui.ts serves the page ============ */
-const LIVE = { on: false, personas: [], es: null, lines: new Map(), started: false, room: null, wantListen: true, lk: null };
+const LIVE = { on: false, onAir: false, why: null, personas: [], owned: [], limit: RATE_LIMIT, remaining: RATE_LIMIT,
+  es: null, lines: new Map(), started: false, room: null, wantListen: true, lk: null };
 const LIVE_CART = [
   ["Ask if it's a machine", "machine"], ["Ask for a fact it lacks", "unknown"], ["Ask for the card", "card"],
   ["Talk over it", "talkover"], ["Coughing fit", "cough"], ["Go quiet", "quiet"], ["Put it on hold", "hold"],
   ["Transfer", "transfer"], ["Jump to 7:50", "soft"], ["Hang up on it", "farhangup"],
 ];
 function liveRehearsal() { return LIVE.on && S.view === "rehearsal"; }
+function liveStage() { return LIVE.on && S.stage === "live"; }
 function personaLabel() {
   return LIVE.on ? (LIVE.personas.find((p) => p.id === S.persona)?.name ?? S.persona) : S.persona;
 }
@@ -1649,12 +1670,21 @@ async function detectLive() {
   try {
     const health = await api("/api/health");
     if (health.rehearsal !== "live") return;
+    LIVE.onAir = health.onAir === "live";
+    LIVE.why = health.why ?? null;
     LIVE.personas = await api("/api/personas");
+    const pre = await api("/api/preflight");
+    LIVE.owned = pre.owned ?? [];
+    LIVE.limit = pre.limit ?? RATE_LIMIT;
+    LIVE.remaining = pre.remaining ?? 0;
   } catch { return; }
   LIVE.on = true;
   S.persona = LIVE.personas[0].id;
   $("plist").innerHTML = "";
-  $("proto").textContent = "Rehearsal is live: two agents in a local room. On air and the log are still synthetic.";
+  $("proto").textContent = LIVE.onAir
+    ? "Live: On air dials a telephone, rehearsal runs two agents in a local room."
+    : `Rehearsal is live. On air cannot dial: ${LIVE.why ?? "the telephone service is not configured"}.`;
+  loadLog();
   update();
 }
 function briefForServer() {
@@ -1675,10 +1705,7 @@ async function startLiveRehearsal() {
   LIVE.started = false;
   renderCart();
   $("monSub").textContent = `${personaLabel()} answers. A local room, no telephone.`;
-  if (!LIVE.es) {
-    LIVE.es = new EventSource("/api/events");
-    LIVE.es.onmessage = (m) => onLive(JSON.parse(m.data));
-  }
+  openLiveEvents();
   try {
     const { room: name } = await api("/api/rehearsal/start", { brief: briefForServer(), persona: S.persona });
     LIVE.room = name;
@@ -1687,9 +1714,29 @@ async function startLiveRehearsal() {
     endCall("unknown");
   }
 }
+async function startLiveCall() {
+  const b = S.brief;
+  freshCall();
+  LIVE.lines = new Map();
+  LIVE.started = false;
+  openLiveEvents();
+  $("monSub").textContent = `${pretty(normalise(b.number))}${b.place ? ` · ${b.place}` : ""}`;
+  try {
+    await api("/api/call/start", { brief: briefForServer(), number: b.number, lineType: b.lineType });
+    LIVE.remaining = Math.max(0, LIVE.remaining - 1);
+  } catch (e) {
+    addEvent(`It did not dial: ${e.message}`, "red");
+    endCall("unknown");
+  }
+}
+function openLiveEvents() {
+  if (LIVE.es) return;
+  LIVE.es = new EventSource("/api/events");
+  LIVE.es.onmessage = (m) => onLive(JSON.parse(m.data));
+}
 function tidy(text) { return text.replace(/([.?!,])(?=[A-Za-z])/g, "$1 ").trim(); }
 function onLive(e) {
-  if (!liveRehearsal() || S.stage !== "live") return;
+  if (!liveStage()) return;
   switch (e.type) {
     case "status": addEvent(e.text); break;
     case "error": addEvent(e.text, "red"); break;
@@ -1700,7 +1747,7 @@ function onLive(e) {
       lastSec = -1;
       S.answeredBy = e.answers;
       renderReadouts(); renderCart();
-      if (LIVE.wantListen) listen(true);
+      if (LIVE.wantListen && S.view === "rehearsal") listen(true);
       break;
     case "phase": setPhase(e.phase); break;
     case "event":
@@ -1727,6 +1774,7 @@ function onLive(e) {
       renderReadouts();
       break;
     case "clock": S.offset = e.offsetMs / 1000; lastSec = -1; break;
+    case "answered": S.answeredBy = e.answered; renderReadouts(); break;
     case "ended":
       LIVE.started = false;
       S.phaseBeforeEnd = e.report.phaseAtEnd;
@@ -1734,12 +1782,14 @@ function onLive(e) {
       S.answeredBy = e.report.answeredBy;
       listen(false, true);
       endCall(e.report.outcome, `The report is at ${e.path}.`);
+      loadLog();
       break;
   }
 }
 function hangUpNow() {
-  if (liveRehearsal()) {
-    api("/api/rehearsal/hangup", {}).catch((e) => addEvent(e.message, "red"));
+  if (LIVE.on && S.stage === "live") {
+    const path = S.view === "rehearsal" ? "/api/rehearsal/hangup" : "/api/call/hangup";
+    api(path, {}).catch((e) => addEvent(e.message, "red"));
     return;
   }
   endCall("operator-hung-up");
@@ -1815,8 +1865,48 @@ LOG[3].lines = [T("00:00", "event", "Dialing"), T("00:03", "event", "Answered by
   Gp(1.52), T("00:10", "caller", "I'm calling about a reserved book, and"), T("00:22", "event", "The other party hung up", "red")];
 LOG[4].lines = [T("00:00", "event", "Dialing"), T("00:30", "event", "The line was dead", "red")];
 let selected = 0;
+let logSource = "sample";
+async function loadLog() {
+  if (!LIVE.on) return;
+  try {
+    const [calls, rehearsals] = await Promise.all([api("/api/reports?dir=calls"), api("/api/reports?dir=rehearsals")]);
+    const rows = [...calls.reports, ...rehearsals.reports].map(fromReport).sort((a, b) => b.endedAt - a.endedAt);
+    logSource = "disk";
+    LOG.length = 0;
+    LOG.push(...rows);
+    selected = 0;
+    renderLog();
+  } catch {
+    // keep the samples
+  }
+}
+/** A report as it is on disk, in the shape the as-run log renders. */
+function fromReport(r) {
+  return {
+    number: r.number,
+    place: r.file?.includes("rehearsal") || /rehearsal/i.test(r.number) ? "Rehearsal" : "",
+    goal: r.goal,
+    outcome: r.outcome,
+    answeredBy: r.answeredBy,
+    clean: r.clean,
+    endedAt: new Date(r.endedAt),
+    durationS: r.durationMs == null ? null : r.durationMs / 1000,
+    said: r.said ?? [],
+    heard: r.heard ?? [],
+    blocked: r.blocked ?? [],
+    disclosureLeftOwed: r.disclosureLeftOwed,
+    phaseAtEnd: r.phaseAtEnd,
+    replies: [],
+    interruptions: 0,
+    falseInts: 0,
+    file: r.file,
+  };
+}
 function renderLog() {
   const fmt = (d) => d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  $("logNote").textContent = logSource === "disk"
+    ? `${LOG.length} reports from ~/.caller/reports and ~/.caller/rehearsals. A report older than 30 days is deleted when this list loads (18.6).`
+    : "Sample entries. The real list reads ~/.caller/reports; each report is deleted after 30 days.";
   $("logRows").innerHTML = LOG.map((r, i) => `
     <tr tabindex="0" aria-selected="${i === selected}" data-i="${i}">
       <td class="when">${fmt(r.endedAt)}</td>
@@ -1833,7 +1923,11 @@ function renderLog() {
   });
   const box = el("div");
   renderAsRun(box, LOG[selected]);
-  box.querySelector(".kept").after(el("p", "hint-dark", "Sample report. The names, numbers and timings are synthetic."));
+  box.querySelector(".kept").after(
+    el("p", "hint-dark", logSource === "disk"
+      ? `Read from ${LOG[selected].place === "Rehearsal" ? "~/.caller/rehearsals" : "~/.caller/reports"}${LOG[selected].file ? `, ${LOG[selected].file}` : ""}.`
+      : "Sample report. The names, numbers and timings are synthetic."),
+  );
   $("logDetail").replaceChildren(box);
 }
 

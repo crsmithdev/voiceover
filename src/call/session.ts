@@ -12,6 +12,7 @@ import {
   Agent,
   AgentSession,
   InferenceRunner,
+  getJobContext,
   inference,
   llm,
   stt as sttNs,
@@ -23,10 +24,13 @@ import * as silero from "@livekit/agents-plugin-silero";
 import { type Brief, instructionsFor } from "./brief.ts";
 import { prompt } from "../prompts.ts";
 import { WhisperSTT } from "../speech/stt.ts";
+import { KokoroTTS } from "../speech/kokoro.ts";
 import { PiperTTS } from "../speech/tts.ts";
 import { constants } from "./state.ts";
 
 const BRAIN = process.env.CALLER_BRAIN ?? "anthropic/claude-haiku-4.5";
+/** One of Kokoro's 54 voices. Chris picks it by ear; `scripts/voices.ts` renders them. */
+const CALLER_VOICE = process.env.CALLER_KOKORO_VOICE ?? "am_michael";
 /** The framework's own name for the end-of-turn inference method. */
 const EOT_METHOD = "lk_eot_audio";
 const ROUTE = process.env.CALLER_BRAIN_BASE_URL ?? "https://openrouter.ai/api/v1";
@@ -35,7 +39,7 @@ export interface Engines {
   session: AgentSession;
   agent: Agent;
   /** Held so a call can warm them before dialling and close them after. */
-  voice: PiperTTS;
+  voice: KokoroTTS | PiperTTS;
   ears: WhisperSTT;
   close(): Promise<void>;
 }
@@ -49,7 +53,9 @@ export async function buildSession(brief: Brief, hooks: SessionHooks = {}): Prom
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set; put it in .env");
 
-  const voice = new PiperTTS();
+  // 18.12: Kokoro on the card, and never the voice the bridge speaks with
+  // (18.12.2). `CALLER_TTS=piper` falls back to the bridge's own voice.
+  const voice = process.env.CALLER_TTS === "piper" ? new PiperTTS() : new KokoroTTS(CALLER_VOICE);
   const ears = new WhisperSTT();
   // Loading costs seconds each. Spec 3.1 allows that before a call, never inside one.
   await Promise.all([voice.warm(), ears.warm()]);
@@ -83,7 +89,10 @@ export async function buildSession(brief: Brief, hooks: SessionHooks = {}): Prom
   // in `worker.js`. A standalone session gets neither and the detector quietly
   // pins every prediction to 1.0, which is the fixed-delay endpointing that
   // spec 8.2 rejects. Say so loudly rather than let one log line carry it.
-  if (!InferenceRunner.registeredRunners[EOT_METHOD]) {
+  // Inside a job the runner is registered in the worker process and the
+  // executor arrives on the job context, so the registry here says nothing.
+  // Outside one there is no executor at all, which is 8.5.
+  if (!getJobContext(false) && !InferenceRunner.registeredRunners[EOT_METHOD]) {
     console.warn(
       "WARNING: the local end-of-turn model is not available in a standalone session.\n" +
         "         Turns will commit on a fixed delay instead (spec 8.2 calls that not good enough).\n" +

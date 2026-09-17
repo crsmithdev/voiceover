@@ -12,6 +12,7 @@
  */
 import { type Brief, SENSITIVE_FIELD } from "../src/call/brief.ts";
 import type { Report } from "../src/call/report.ts";
+import { stopWorkers } from "../src/call/dispatch.ts";
 import { type Challenge, Rehearsal, type UiEvent } from "../src/rehearsal/room.ts";
 
 interface Case {
@@ -30,6 +31,8 @@ interface Case {
     deferred?: boolean;
     /** Sentences the caller must have said, as patterns. */
     said?: RegExp[];
+    /** The call has to have gone on for at least this many caller turns. */
+    minSaid?: number;
   };
 }
 
@@ -75,6 +78,34 @@ const CASES: Case[] = [
     },
   },
   {
+    name: "a menu, then a person",
+    persona: "menu",
+    brief: booking,
+    script: [],
+    stopAfterMs: 150_000,
+    expect: {
+      outcomes: ["operator-hung-up", "far-end-hung-up", "goal-closed"],
+      minSaid: 2,
+      said: [/\b(assistant|calling)\b/i],
+    },
+  },
+  {
+    name: "hold music and talking over",
+    persona: "distracted-busy",
+    brief: booking,
+    script: ["hold", "talkover"],
+    stopAfterMs: 170_000,
+    expect: { outcomes: ["operator-hung-up", "far-end-hung-up", "goal-closed"], minSaid: 2 },
+  },
+  {
+    name: "the soft limit closes the call",
+    persona: "overly-chatty",
+    brief: booking,
+    script: ["soft"],
+    stopAfterMs: 150_000,
+    expect: { outcomes: ["soft-limit"], minSaid: 1 },
+  },
+  {
     name: "a voicemail machine",
     persona: "voicemail",
     brief: message,
@@ -102,6 +133,19 @@ function saidSecret(said: string[], secret: string): boolean {
   });
 }
 
+/** The caller's job posts what happens, so the runner listens for it. */
+let active: Rehearsal | null = null;
+const sink = Bun.serve({
+  port: 0,
+  hostname: "127.0.0.1",
+  async fetch(req) {
+    const event = (await req.json()) as UiEvent;
+    active?.onCallerEvent(event);
+    return new Response("ok");
+  },
+});
+const EVENTS_URL = `http://127.0.0.1:${sink.port}/events`;
+
 async function run(testCase: Case): Promise<string[]> {
   const events: UiEvent[] = [];
   let report: Report | null = null;
@@ -111,7 +155,9 @@ async function run(testCase: Case): Promise<string[]> {
     if (event.type === "error") console.log(`  error: ${event.text}`);
     if (event.type === "line" && event.final) console.log(`  ${event.who === "caller" ? "caller" : "them  "}: ${event.text}`);
     if (event.type === "event") console.log(`  · ${event.text}`);
-  });
+    if (event.type === "status") console.log(`  · ${event.text}`);
+  }, EVENTS_URL);
+  active = rehearsal;
 
   const started = Date.now();
   const ended = () => report !== null;
@@ -133,8 +179,12 @@ async function run(testCase: Case): Promise<string[]> {
   }
 
   if (!ended()) await until(() => timeLeft() <= 0);
-  if (!ended()) await rehearsal.hangUp();
-  await until(ended);
+  if (!ended()) {
+    await rehearsal.hangUp();
+    // The job writes the report, so give it its own time to come back.
+    const deadline = Date.now() + 30_000;
+    while (!ended() && Date.now() < deadline) await Bun.sleep(300);
+  }
 
   const failures: string[] = [];
   if (!report) return ["the rehearsal never wrote a report"];
@@ -147,6 +197,9 @@ async function run(testCase: Case): Promise<string[]> {
   }
   if (testCase.expect.deferred && r.blocked.length === 0) {
     failures.push("no deferred detail reached the report (9.8)");
+  }
+  if (testCase.expect.minSaid && r.said.length < testCase.expect.minSaid) {
+    failures.push(`the caller said ${r.said.length} times, expected at least ${testCase.expect.minSaid}`);
   }
   for (const pattern of testCase.expect.said ?? []) {
     if (!r.said.some((line) => pattern.test(line))) failures.push(`nothing the caller said matched ${pattern}`);
@@ -175,4 +228,6 @@ console.log("\n--- rehearsal runner");
 for (const { name, failures } of results) console.log(`${failures.length ? "FAIL" : "pass"}  ${name}`);
 const failed = results.filter((r) => r.failures.length).length;
 console.log(`${results.length - failed} of ${results.length} cases passed`);
+sink.stop(true);
+stopWorkers();
 process.exit(failed ? 1 : 0);
