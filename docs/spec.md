@@ -696,10 +696,11 @@ call. HTML mockups come before any of it is built.
 composed, shown back, and passed to the call. Nothing about a brief outlives the
 call it was written for.
 
-18.2.1 **Decided.** The mockups live in the repository, at `design/`. The
-clickable prototype and the canvas sources are tracked. The canvas editor
-bundle, `design/caller-local-ui.html`, is a build output and is ignored,
-because the `design` skill regenerates it from the same sources.
+18.2.1 **Decided, and replaced on 17 September 2026.** The mockup is one
+clickable file, `design/caller.html`, in the Control Room direction: the brief
+is a rundown that locks on air, the call is a programme feed with each reply
+timed, and the report is an as-run log. `PRODUCT.md` holds the product truth
+and `DESIGN.md` the visual system. The earlier canvas mockups are deleted.
 
 18.3.1 **Decided.** The brief holds key-value facts and one optional free-text
 background field. Key-value is the primary shape, because Section 9 must be

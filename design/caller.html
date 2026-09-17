@@ -301,7 +301,7 @@ textarea.field { line-height: 1.45; overflow: hidden; }
   border-radius: 50%;
   background: var(--lamp-off);
   align-self: center;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .6);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .45);
   transition: background-color .2s var(--ease), box-shadow .2s var(--ease);
 }
 .dot[data-c="green"] { background: var(--green); box-shadow: 0 0 8px rgba(62, 155, 92, .7); }
@@ -779,6 +779,7 @@ const REASONS = {
   "message-left": "A message was left on a voicemail machine",
   "far-end-hung-up": "The other party hung up",
   "caller-hung-up": "The caller ended the call",
+  "operator-hung-up": "You hung up from the console",
   "dead-line": "The line was dead",
   unknown: "The call ended without a reason being recorded",
 };
@@ -1102,7 +1103,7 @@ function renderKey() {
     key.disabled = false;
     well.classList.add("guarded");
     key.innerHTML = `<span class="big">Hang up</span><span class="small">Ends the call now. The report is still written. <kbd>Shift</kbd> <kbd>H</kbd></span>`;
-    key.onclick = () => endCall("caller-hung-up", "Ended from the console.");
+    key.onclick = () => endCall("operator-hung-up");
   } else {
     key.className = "key reset";
     key.disabled = false;
@@ -1617,7 +1618,7 @@ function update() {
 document.addEventListener("keydown", (e) => {
   if (e.shiftKey && (e.key === "H" || e.key === "h") && S.stage === "live" && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
     S.phaseBeforeEnd = S.phase;
-    endCall("caller-hung-up", "Ended from the console.");
+    endCall("operator-hung-up");
   }
 });
 $("key").addEventListener("click", () => { if (S.stage === "live") S.phaseBeforeEnd = S.phase; }, true);

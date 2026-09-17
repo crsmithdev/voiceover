@@ -34,6 +34,7 @@ export type EndReason =
   | "message-left"
   | "far-end-hung-up"
   | "caller-hung-up"
+  | "operator-hung-up"
   | "dead-line";
 
 export type Event =
@@ -53,6 +54,8 @@ export type Event =
   | { kind: "menuCleared"; at: number }
   | { kind: "farEndHungUp"; at: number }
   | { kind: "hangUp"; at: number }
+  /** Chris ends the call from the console, whatever the caller was doing. */
+  | { kind: "operatorHangUp"; at: number }
   | { kind: "tick"; at: number };
 
 export type SendReason = "turn" | "superseded" | "disclosure" | "voicemail-beep" | "restart-from-brief";
@@ -336,6 +339,17 @@ export function step(prev: CallState, event: Event, k: Constants = constants): S
       actions.push(
         { kind: "endCall", reason: "caller-hung-up" },
         { kind: "writeReport", reason: "caller-hung-up" },
+      );
+      to("ended");
+      break;
+
+    // Chris cuts the call. Neither party chose it, so it is not clean.
+    case "operatorHangUp":
+      state.endReason = "operator-hung-up";
+      if (prev.phase === "speaking") actions.push({ kind: "stopPlayback" });
+      actions.push(
+        { kind: "endCall", reason: "operator-hung-up" },
+        { kind: "writeReport", reason: "operator-hung-up" },
       );
       to("ended");
       break;

@@ -71,6 +71,7 @@ const REASONS: Record<EndReason | "unknown", string> = {
   "message-left": "a message was left on a voicemail machine",
   "far-end-hung-up": "the other party hung up",
   "caller-hung-up": "the caller ended the call",
+  "operator-hung-up": "Chris hung up from the console",
   "dead-line": "the line was dead",
   unknown: "the call ended without a reason being recorded",
 };

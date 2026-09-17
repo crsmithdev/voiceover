@@ -79,6 +79,14 @@ describe("buildReport", () => {
     expect(summarise(report)).not.toContain("WARNING: the call did not close");
   });
 
+  test("a call Chris cut from the console is not clean", () => {
+    const { state } = run([...closed.slice(0, 3), { kind: "operatorHangUp", at: 9_000 }], k);
+    const report = buildReport(state, context, 9_000);
+    expect(report.outcome).toBe("operator-hung-up");
+    expect(report.clean).toBe(false);
+    expect(summarise(report)).toContain("Chris hung up from the console");
+  });
+
   test("the report does not claim a person when nothing could tell", () => {
     const { state } = run(
       [

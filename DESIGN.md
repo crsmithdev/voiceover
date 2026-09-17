@@ -22,6 +22,18 @@ colors:
   green: "#3e9b5c"
   amber: "#e3a62a"
   lit-ink: "#17130c"
+  green-lit-hover: "#48ad68"
+  red-lit-hover: "#e84a3a"
+  red-text-on-paper: "#a8261a"
+  warn-text: "#f5b3aa"
+  green-text: "#7fc796"
+  them-text: "#d6e2d6"
+  soft-tick-off: "#6c5a31"
+  clock-seconds: "#cfcab8"
+  guard: "#8c8a7e"
+  pause-hatch: "#6a6b62"
+  split-transcriber: "#8fb89a"
+  split-voice: "#e9826f"
 typography:
   display:
     fontFamily: "Barlow Condensed, Barlow, system-ui, sans-serif"
@@ -104,6 +116,12 @@ typography:
     fontSize: "13px"
     fontWeight: 400
     lineHeight: 1.9
+  micro:
+    fontFamily: "Barlow Condensed, Barlow, system-ui, sans-serif"
+    fontSize: "11px"
+    fontWeight: 600
+    lineHeight: 1
+    letterSpacing: "0.06em"
 rounded:
   sm: "2px"
   md: "3px"
@@ -274,12 +292,19 @@ The palette is a dark warm console, one cool paper sheet, and three lamp colours
 - **Red Glass** (`red-glass`): The unlit ON AIR lamp. The lamp stays visible as dark red glass between calls.
 - **Red Signal Text** (`red-text`): Red words on the dark console, such as a refused event, a Not clean flag and the Hard 12 caption.
 - **Red Lamp Legend** (`red-lit-legend`): The warm white legend on a lit red lamp or key.
+- **Red Key Hover** (`red-lit-hover`): The hang-up key under the pointer.
+- **Paper Red** (`red-text-on-paper`): A refused number hint on the rundown sheet.
+- **Warning Text** (`warn-text`): Words inside a red warning box on the console.
 
 ### Secondary
 - **Tally Green** (`green`): The line to the other party is live. It lights the Listening cell, the TAKE key, the Say it key, passed preflight checks and the dot for the other party.
+- **Green Key Hover** (`green-lit-hover`): The TAKE key under the pointer.
+- **Green Signal Text** (`green-text`): Green event lines in the feed, such as Answered yes at once.
+- **Their Words** (`them-text`): The other party's transcript text. It is a green-tinted Legend.
 
 ### Tertiary
 - **Tally Amber** (`amber`): Wait, attention or rehearsal. It lights Thinking and Interrupted, the soft limit, Needs you, the rehearsal lamp, a pressed cart key and the selected log row edge. The focus ring also uses amber.
+- **Soft Tick Unlit** (`soft-tick-off`): The soft-limit tick on the clock before 8 minutes.
 
 ### Neutral
 - **Console** (`console`): The page ground, the mode keys at rest and the unlit persona buttons.
@@ -296,6 +321,11 @@ The palette is a dark warm console, one cool paper sheet, and three lamp colours
 - **Ink** (`ink`): Text, the header rule, the selected line type and the focused field underline on paper.
 - **Dim Ink** (`ink-dim`): Slot names, hints and the sheet foot on paper.
 - **Lit Ink** (`lit-ink`): The dark legend on a lit green, amber or white lamp.
+- **Clock Seconds** (`clock-seconds`): A lit seconds LED on the studio clock. It is warm white so only the limit ticks carry colour.
+- **Guard Frame** (`guard`): The frame around the hang-up key while a call is live.
+- **Pause Hatch** (`pause-hatch`): The hatched end-of-turn pause segment in the latency split. The hatch marks a setting, not a cost.
+- **Transcriber Segment** (`split-transcriber`): The transcriber segment in the latency split.
+- **Voice Segment** (`split-voice`): The voice segment in the latency split.
 
 ### Named Rules
 **The Tally Rule.** Red, green and amber mean state. Red is the caller's microphone, green is the line to them, and amber is a wait or a warning. Do not use them as decoration.
@@ -327,6 +357,7 @@ The palette is a dark warm console, one cool paper sheet, and three lamp colours
 - **Label** (`label`): Panel legends, slot names, table heads, cart keys and rundown buttons. Uppercase.
 - **Label Small** (`label-small`): Tally cells, the rundown stamp and the line type control. Uppercase.
 - **Timecode** (`timecode`): Feed timecodes. The same face at 12px shows the reply gap, and at 14px shows log numbers.
+- **Micro** (`micro`): The Give out tick legend, the clock captions, latency segment names and tally cells on the narrow console.
 
 ### Named Rules
 **The Legend Rule.** A name for a control, a panel or a field is a condensed uppercase legend with tracking. A sentence is Barlow in sentence case.

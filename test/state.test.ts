@@ -60,6 +60,15 @@ describe("the ordinary loop", () => {
     expect(kinds(actions).slice(-2)).toEqual(["endCall", "writeReport"]);
   });
 
+  test("Chris hanging up mid-sentence stops playback and ends the call", () => {
+    const { state, actions } = run(
+      [...answered, { kind: "sentenceReady", at: 5_000, text: "He would like a cleaning." }, { kind: "operatorHangUp", at: 5_500 }],
+      k,
+    );
+    expect(state.endReason).toBe("operator-hung-up");
+    expect(kinds(actions).slice(-3)).toEqual(["stopPlayback", "endCall", "writeReport"]);
+  });
+
   test("a clock that changes nothing writes no trace line", () => {
     const ticks: Event[] = Array.from({ length: 40 }, (_, i) => ({ kind: "tick", at: 4_000 + i * 100 }));
     const quiet = run([...answered, ...ticks], k);
