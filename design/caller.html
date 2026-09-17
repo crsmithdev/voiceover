@@ -118,8 +118,12 @@ h2 { margin: 0; }
 }
 .room[data-view="log"] > .rundown,
 .room[data-view="log"] > .programme,
-.room[data-view="log"] > .console { display: none; }
+.room[data-view="log"] > .console,
+.room[data-view="prompts"] > .rundown,
+.room[data-view="prompts"] > .programme,
+.room[data-view="prompts"] > .console { display: none; }
 .room:not([data-view="log"]) > .archive { display: none; }
+.room:not([data-view="prompts"]) > .promptsview { display: none; }
 
 /* ---------- rundown sheet ---------- */
 .rundown {
@@ -596,6 +600,74 @@ tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 2px 0 0 var(--
 .flag.red { color: #f07a6d; }
 .archive-detail { padding: 24px; background: var(--console-well); }
 
+/* ---------- prompts ---------- */
+.promptsview {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  min-height: 0;
+}
+.plistpane { min-height: 0; overflow-y: auto; padding: 24px 16px 24px 24px; border-right: 1px solid var(--rule); }
+.plistpane h2 { font: 700 20px/1 var(--cond); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+.plistpane .file { margin: 0 0 18px; font: 400 12px/1.5 var(--mono); color: var(--legend-dim); overflow-wrap: anywhere; }
+.pgroup { margin: 18px 0 6px; display: block; }
+.pitem {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 2px;
+  background: none;
+  text-align: left;
+  font: 500 15px/1.3 var(--sans);
+  color: var(--legend-dim);
+  transition: background-color .15s var(--ease), color .15s var(--ease);
+}
+.pitem:hover { background: var(--console-raised); color: var(--legend); }
+.pitem[aria-current="true"] { background: #43443d; color: var(--legend); box-shadow: inset 2px 0 0 var(--amber); }
+.pitem .tag { font: 600 11px/1 var(--cond); letter-spacing: .08em; text-transform: uppercase; color: var(--legend-dim); }
+.peditor { min-height: 0; overflow-y: auto; padding: 24px; background: var(--console-well); display: flex; flex-direction: column; gap: 14px; }
+.peditor h3 { margin: 0; font: 700 30px/1.1 var(--cond); color: var(--legend); }
+.peditor .used { margin: 0; max-width: 72ch; color: var(--legend-dim); }
+.pmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 14px; color: var(--legend-dim); }
+.chip { font: 500 13px/1 var(--mono); padding: 4px 6px; border: 1px solid var(--rule); border-radius: 2px; color: var(--legend); }
+.chip.missing { border-color: var(--amber); color: var(--amber); }
+.ptext {
+  width: 100%;
+  min-height: 240px;
+  padding: 14px 16px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--console);
+  color: var(--legend);
+  font: 400 16px/1.6 var(--sans);
+  caret-color: var(--amber);
+  resize: vertical;
+}
+.ptext:focus { outline: none; border-color: var(--amber); }
+.ptext[readonly] { color: var(--legend-dim); background: transparent; }
+.pactions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.pbtn {
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--console-raised);
+  font: 700 14px/1 var(--cond);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--legend);
+}
+.pbtn:hover:not(:disabled) { background: #45463f; }
+.pbtn.save { background: var(--green); border-color: var(--green); color: var(--lit-ink); }
+.pbtn.save:hover:not(:disabled) { background: #48ad68; }
+.pbtn:disabled { background: var(--console); border-color: var(--rule); color: var(--lamp-off-legend); cursor: not-allowed; }
+.pstatus { font-size: 14px; color: var(--legend-dim); }
+.pwarn { margin: 0; padding: 10px 14px; border: 1px solid var(--amber); border-radius: 2px; color: var(--amber); background: rgba(227, 166, 42, .08); }
+
 /* ---------- narrow ---------- */
 @media (max-width: 1180px) {
   .room { grid-template-columns: 330px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
@@ -661,6 +733,9 @@ tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 2px 0 0 var(--
   .check { grid-template-columns: 12px minmax(0, 1fr); }
   .check .verdict { grid-column: 2; }
   .archive { display: flex; flex-direction: column; }
+  .promptsview { display: flex; flex-direction: column; }
+  .plistpane { border-right: 0; border-bottom: 1px solid var(--rule); padding: 16px; max-height: 40vh; }
+  .peditor { padding: 16px; }
   .archive-list { border-right: 0; padding: 16px; overflow-x: auto; }
   .archive-detail { padding: 16px; }
   .col-answered, .col-dur { display: none; }
@@ -682,6 +757,7 @@ tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 2px 0 0 var(--
     <button class="modekey" data-view="air" aria-pressed="true">On air</button>
     <button class="modekey" data-view="rehearsal" aria-pressed="false">Rehearsal</button>
     <button class="modekey" data-view="log" aria-pressed="false">Log</button>
+    <button class="modekey" data-view="prompts" aria-pressed="false">Prompts</button>
   </nav>
   <p class="proto" id="proto">Prototype. The call, the timings and the log are synthetic.</p>
   <div class="onair" id="onair" data-lit="off" role="status" aria-live="polite">On air</div>
@@ -744,6 +820,15 @@ tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 2px 0 0 var(--
       <button class="key take" id="key"></button>
     </div>
   </aside>
+
+  <section class="promptsview" id="promptsview" aria-label="Prompts">
+    <nav class="plistpane" aria-label="Prompt list">
+      <h2>Prompts</h2>
+      <p class="file" id="pfile">Every instruction an agent reads.</p>
+      <div id="plistItems"></div>
+    </nav>
+    <div class="peditor" id="peditor"></div>
+  </section>
 
   <section class="archive" id="archive" aria-label="Log">
     <div class="archive-list">
@@ -1549,8 +1634,12 @@ function liveRehearsal() { return LIVE.on && S.view === "rehearsal"; }
 function personaLabel() {
   return LIVE.on ? (LIVE.personas.find((p) => p.id === S.persona)?.name ?? S.persona) : S.persona;
 }
-async function api(path, body) {
-  const res = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+async function api(path, body, method, payload) {
+  const send = payload ?? body;
+  const res = await fetch(path, {
+    method: method ?? (body === undefined ? "GET" : "POST"),
+    ...(send === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(send) }),
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || res.statusText);
   return json;
@@ -1748,6 +1837,145 @@ function renderLog() {
   $("logDetail").replaceChildren(box);
 }
 
+/* ============ prompts ============ */
+const P = { list: [], current: "assembled", drafts: new Map(), status: "" };
+async function loadPrompts() {
+  if (!LIVE.on) return;
+  const { file, prompts } = await api("/api/prompts");
+  P.list = prompts;
+  $("pfile").textContent = `Edits are saved to ${file} and take effect at the next rehearsal or call.`;
+}
+function promptState(p) {
+  if (p.locked) return ["Locked", null];
+  if (P.drafts.has(p.id)) return ["Unsaved", "amber"];
+  if (p.edited) return ["Edited", "amber"];
+  return ["Default", null];
+}
+function renderPromptList() {
+  const box = $("plistItems");
+  box.innerHTML = "";
+  const item = (id, label, state) => {
+    const b = el("button", "pitem");
+    b.type = "button";
+    b.setAttribute("aria-current", String(P.current === id));
+    const dot = el("span", "dot");
+    if (state[1]) dot.dataset.c = state[1];
+    b.append(dot, el("span", null, label), el("span", "tag", state[0]));
+    b.onclick = () => { P.current = id; P.status = ""; renderPrompts(); };
+    return b;
+  };
+  box.append(el("span", "legend pgroup", "Caller"), item("assembled", "Full instructions for this rundown", ["View", null]));
+  let group = "Caller";
+  for (const p of P.list) {
+    if (p.group !== group) { group = p.group; box.append(el("span", "legend pgroup", group)); }
+    box.append(item(p.id, p.name, promptState(p)));
+  }
+}
+async function renderPromptEditor() {
+  const ed = $("peditor");
+  ed.innerHTML = "";
+  if (P.current === "assembled") {
+    ed.append(el("h3", null, "Full instructions for this rundown"),
+      el("p", "used", "What the caller reads, assembled from the rundown and the Caller prompts below. The disclosure rules always come last. Read-only; edit the parts."));
+    const t = el("textarea", "ptext");
+    t.readOnly = true;
+    ed.append(t);
+    if (!S.brief) { t.value = "There is no rundown. Write one on the On air or Rehearsal view first."; return; }
+    try { t.value = (await api("/api/prompts/preview", { brief: briefForServer() })).text; }
+    catch (e) { t.value = `The preview failed: ${e.message}`; }
+    t.style.height = `${t.scrollHeight + 4}px`;
+    return;
+  }
+  const p = P.list.find((x) => x.id === P.current);
+  if (!p) return;
+  const draft = P.drafts.get(p.id) ?? p.value;
+  const [stateLabel, stateTone] = promptState(p);
+  const meta = el("div", "pmeta");
+  const lamp = el("span", "dot"); if (stateTone) lamp.dataset.c = stateTone;
+  const stateText = el("span", "legend", stateLabel);
+  meta.append(lamp, stateText, el("span", null, `${p.group} · ${p.id}`));
+  ed.append(el("h3", null, p.name), el("p", "used", p.usedBy), meta);
+
+  const warn = el("p", "pwarn"); warn.hidden = true;
+  const chips = el("div", "pmeta");
+  const refreshChips = (text) => {
+    chips.innerHTML = "";
+    if (!p.placeholders?.length) { chips.hidden = true; return; }
+    chips.hidden = false;
+    chips.append(el("span", "legend", "Fills in"));
+    const missing = [];
+    for (const name of p.placeholders) {
+      const has = text.includes(`{${name}}`);
+      if (!has) missing.push(name);
+      chips.append(el("span", `chip${has ? "" : " missing"}`, `{${name}}`));
+    }
+    warn.hidden = !missing.length;
+    warn.textContent = missing.length ? `This text no longer includes ${missing.map((m) => `{${m}}`).join(", ")}. The agent will not see what fills it.` : "";
+  };
+  const t = el("textarea", "ptext");
+  t.value = draft;
+  t.readOnly = !!p.locked;
+  t.setAttribute("aria-label", p.name);
+  const fit = () => { t.style.height = "auto"; t.style.height = `${Math.max(240, t.scrollHeight + 4)}px`; };
+  const actions = el("div", "pactions");
+  const save = el("button", "pbtn save", "Save");
+  const revert = el("button", "pbtn", "Discard changes");
+  const reset = el("button", "pbtn", "Reset to default");
+  const status = el("span", "pstatus", P.status);
+  const sync = () => {
+    const dirty = t.value !== p.value;
+    save.disabled = !dirty || p.locked;
+    revert.disabled = !dirty;
+    reset.disabled = p.locked || (!p.edited && t.value === p.default);
+    refreshChips(t.value);
+  };
+  t.oninput = () => {
+    if (t.value === p.value) P.drafts.delete(p.id); else P.drafts.set(p.id, t.value);
+    P.status = ""; status.textContent = "";
+    const [label, tone] = promptState(p);
+    stateText.textContent = label;
+    if (tone) lamp.dataset.c = tone; else delete lamp.dataset.c;
+    fit(); sync(); renderPromptList();
+  };
+  const doSave = async () => {
+    if (save.disabled) return;
+    try {
+      const updated = await api(`/api/prompts/${p.id}`, undefined, "PUT", { value: t.value });
+      Object.assign(p, updated);
+      P.drafts.delete(p.id);
+      P.status = "Saved. It takes effect at the next rehearsal or call.";
+    } catch (e) { P.status = `Not saved: ${e.message}`; }
+    renderPrompts();
+  };
+  save.onclick = doSave;
+  t.onkeydown = (e) => { if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); doSave(); } };
+  revert.onclick = () => { P.drafts.delete(p.id); P.status = ""; renderPrompts(); };
+  reset.onclick = async () => {
+    try {
+      const updated = await api(`/api/prompts/${p.id}`, undefined, "DELETE");
+      Object.assign(p, updated);
+      P.drafts.delete(p.id);
+      P.status = "Reset to the default.";
+    } catch (e) { P.status = `Not reset: ${e.message}`; }
+    renderPrompts();
+  };
+  if (p.locked) actions.append(el("span", "pstatus", "Spec 10.3: the product holds no setting that turns this off."));
+  else actions.append(save, revert, reset, status);
+  ed.append(chips, warn, t, actions);
+  fit(); sync();
+}
+async function renderPrompts() {
+  if (!LIVE.on) {
+    $("plistItems").innerHTML = "";
+    $("peditor").replaceChildren(el("h3", null, "Prompts need the local server"),
+      el("p", "used", "Run bun scripts/ui.ts and open http://127.0.0.1:3002 to see and edit every prompt the agents read."));
+    return;
+  }
+  if (!P.list.length) await loadPrompts();
+  renderPromptList();
+  await renderPromptEditor();
+}
+
 /* ============ views ============ */
 function setView(v) {
   if (S.stage === "live") return;
@@ -1756,6 +1984,7 @@ function setView(v) {
   document.querySelectorAll(".modekey").forEach((k) => k.setAttribute("aria-pressed", String(k.dataset.view === v)));
   if (S.stage === "ended") resetCall();
   update();
+  if (v === "prompts") renderPrompts();
 }
 document.querySelectorAll(".modekey").forEach((k) => (k.onclick = () => setView(k.dataset.view)));
 

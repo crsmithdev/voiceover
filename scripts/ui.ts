@@ -9,7 +9,8 @@
  *   bun scripts/ui.ts            serves http://127.0.0.1:3002
  */
 import { join } from "node:path";
-import type { Brief } from "../src/call/brief.ts";
+import { type Brief, instructionsFor } from "../src/call/brief.ts";
+import { PROMPTS_FILE, listPrompts, resetPrompt, setPrompt } from "../src/prompts.ts";
 import { PERSONAS } from "../src/rehearsal/personas.ts";
 import { CHALLENGES, type Challenge, LIVEKIT_URL, Rehearsal, type UiEvent, listenToken } from "../src/rehearsal/room.ts";
 
@@ -102,6 +103,24 @@ Bun.serve({
     if (route === "GET /api/rehearsal/listen") {
       if (!current?.running) return json({ error: "no rehearsal is running" }, 409);
       return json({ url: LIVEKIT_URL, token: await listenToken(current.roomName) });
+    }
+    if (route === "GET /api/prompts") {
+      return json({ file: PROMPTS_FILE, prompts: listPrompts() });
+    }
+    if (route === "POST /api/prompts/preview") {
+      const { brief } = (await req.json()) as { brief: Brief };
+      return json({ text: instructionsFor(brief) });
+    }
+    const edit = url.pathname.match(/^\/api\/prompts\/([\w.-]+)$/);
+    if (edit && (req.method === "PUT" || req.method === "DELETE")) {
+      const id = edit[1] as string;
+      try {
+        if (req.method === "PUT") setPrompt(id, ((await req.json()) as { value: string }).value);
+        else resetPrompt(id);
+      } catch (error) {
+        return json({ error: error instanceof Error ? error.message : String(error) }, 400);
+      }
+      return json(listPrompts().find((p) => p.id === id));
     }
     return new Response("not found", { status: 404 });
   },

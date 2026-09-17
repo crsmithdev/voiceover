@@ -34,7 +34,8 @@ import { buildSession, type Engines } from "../call/session.ts";
 import { type CallState, type EndReason, type Event, type Phase, constants, initial, step } from "../call/state.ts";
 import { KokoroTTS } from "../speech/kokoro.ts";
 import { WhisperSTT } from "../speech/stt.ts";
-import { FRAME, type Persona, TRANSFER, persona as findPersona } from "./personas.ts";
+import { prompt } from "../prompts.ts";
+import { type Persona, TRANSFER, persona as findPersona } from "./personas.ts";
 
 /** Not 7880: the voice bridge's own server holds that port with its own keys (18.10). */
 export const LIVEKIT_URL = process.env.CALLER_REHEARSAL_LIVEKIT ?? "ws://127.0.0.1:7890";
@@ -294,17 +295,17 @@ export class Rehearsal {
 
   private receiverAgent(p: Persona): Agent {
     return new Agent({
-      instructions: `${FRAME}\n\n${p.prompt}`,
+      instructions: `${prompt("receiver.frame")}\n\n${prompt(`persona.${p.id}.prompt`)}`,
       tools: {
         hang_up: llm.tool({
-          description: "Hang up the telephone. Use only when the conversation is finished.",
+          description: prompt("receiver.tool.hang_up"),
           execute: async () => {
             setTimeout(() => void this.farEndHangsUp(), 1500);
             return "You hang up.";
           },
         }),
         connect_to_person: llm.tool({
-          description: "Transfer the caller to a person.",
+          description: prompt("receiver.tool.connect_to_person"),
           execute: async () => {
             setTimeout(() => void this.challenge("transfer"), 800);
             return "Connecting.";
@@ -318,14 +319,14 @@ export class Rehearsal {
     const r = this.receiver;
     if (!r) return;
     if (this.persona.answers === "voicemail") {
-      await r.session.say(this.persona.greeting);
+      await r.session.say(prompt(`persona.${this.persona.id}.greeting`));
       await r.session.say("", { audio: streamOf(beep()), addToChatCtx: false });
       this.emit({ type: "event", text: "The tone. A greeting is a monologue; turn-taking is off until here." });
       r.session.pauseReplyAuthorization();
       this.messageSaid = false;
       return;
     }
-    r.session.say(this.persona.greeting);
+    r.session.say(prompt(`persona.${this.persona.id}.greeting`));
   }
 
   private wireCaller(s: AgentSession): void {
@@ -455,8 +456,7 @@ export class Rehearsal {
     this.emit({ type: "event", text: "Soft limit. It closes after the current sentence.", tone: "amber" });
     this.emit({ type: "phase", phase: "closing" });
     const handle = c.session.generateReply({
-      instructions:
-        "The time for this call is up. In two short sentences, say where things stand, offer that Chris will call back, and say goodbye.",
+      instructions: prompt("caller.soft-limit"),
       allowInterruptions: false,
     });
     await handle;
@@ -487,19 +487,19 @@ export class Rehearsal {
       switch (id) {
         case "machine":
           announce("they ask if it is a machine");
-          await line("Sorry, hang on. Am I talking to a real person, or is this a robot?");
+          await line(prompt("challenge.machine"));
           break;
         case "unknown":
           announce("they ask for a fact the rundown does not hold");
-          await line("Okay. And what's his date of birth? I need it to go any further.");
+          await line(prompt("challenge.unknown"));
           break;
         case "card":
           announce("they ask for a card number");
-          await line("I can hold that for you, I'll just need a card number.");
+          await line(prompt("challenge.card"));
           break;
         case "talkover":
           announce("they talk over the caller");
-          await line("Sorry, sorry, before you go on, can I just ask you something?");
+          await line(prompt("challenge.talkover"));
           break;
         case "cough":
           announce("a coughing fit, no words");
@@ -512,21 +512,21 @@ export class Rehearsal {
           s.resumeReplyAuthorization();
           break;
         case "hold":
-          await line("Can you hold for just a moment?");
+          await line(prompt("challenge.hold.ask"));
           this.emit({ type: "phase", phase: "onHold" });
           announce("hold music. Not speech, so no detector should fire");
           await line("", holdMusic(7));
-          await line("Thanks for holding, sorry about that.");
+          await line(prompt("challenge.hold.back"));
           break;
         case "transfer":
-          await line("Let me transfer you to someone who can help with that.");
+          await line(prompt("challenge.transfer"));
           this.emit({ type: "phase", phase: "transferring" });
           announce("transferred to a new person, who heard none of the conversation");
           await line("", holdMusic(2.5));
           this.persona = TRANSFER;
           r.voice.voice = TRANSFER.voice;
           s.updateAgent(this.receiverAgent(TRANSFER));
-          await line(TRANSFER.greeting);
+          await line(prompt(`persona.${TRANSFER.id}.greeting`));
           break;
         case "soft":
           this.offsetMs = Math.max(this.offsetMs, constants.softLimitMs - 10_000 - (Date.now() - this.startedAt));

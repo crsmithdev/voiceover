@@ -6,6 +6,9 @@
  * voicemail machine and the menu system are new, because 12.9 asks for both.
  * Character comes from behaviour and timing, not a premium voice (12.10); the
  * voice only has to differ from the caller's so a rehearsal is easy to follow.
+ *
+ * The prompt and greeting here are defaults; `src/prompts.ts` serves the text in
+ * force, which the user interface can edit.
  */
 import type { AnsweredBy } from "../call/state.ts";
 
@@ -20,15 +23,6 @@ export interface Persona {
   greeting: string;
   prompt: string;
 }
-
-/** What every person shares: a telephone, and no idea who is calling. */
-export const FRAME = [
-  "You are answering a telephone call at work. You do not know who is calling or why until they say.",
-  "Speak as a person on the phone: short, natural sentences, no lists, no markdown, no stage directions.",
-  "Never say you are an AI or a language model. Stay in character.",
-  "Invent ordinary details about your own business when asked, and keep them consistent.",
-  "When the conversation is clearly finished and goodbyes are said, call the hang_up tool.",
-].join("\n");
 
 export const PERSONAS: Persona[] = [
   {

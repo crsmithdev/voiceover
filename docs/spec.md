@@ -806,6 +806,20 @@ framework has handled it. `scripts/call.ts` does not, so on a real call the
 disclosure debt of 10.4 is set and never cleared, and the report warns about
 any call where the question was asked. That is a fault to fix there.
 
+18.16 **Decided. Every prompt an agent reads is editable in the user
+interface**, at Chris's request on 17 September 2026. That covers the caller's
+brief, its Section 9 rules, its manner and its soft-limit close; the receiver's
+frame, its tool descriptions, each personality and greeting; and the words each
+challenge says. `src/prompts.ts` holds the defaults. An edit is saved to
+`~/.caller/prompts.json` and takes effect at the next rehearsal or call, never
+inside one. The disclosure rules of 10.1 and 10.2 are shown and never edited,
+because 10.3 forbids a setting that turns them off, and they are always the last
+thing the caller reads, so no edit above them can outrank them.
+
+18.16.1 An edit to the Section 9 rules changes what 9.9 calls the only logic
+the framework does not supply. The editor warns when a template loses a
+placeholder, and the rehearsal is where an edit is proved before a real call.
+
 18.13 **Decided.** The pipeline uses the framework's `SentenceTokenizer`, because
 the TTS stream adapter takes one and a second rule inside the same call would
 split the same reply two ways. `src/speech/sentences.ts` stays as the benchmark's
