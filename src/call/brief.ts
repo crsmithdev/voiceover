@@ -20,9 +20,20 @@ export interface Brief {
   limits?: string[];
 }
 
+/** Fields 9.5 withholds unless the brief marks them releasable. */
+export const SENSITIVE_FIELD = /card|payment|account|birth|social|passport|licen[cs]e|government|member id|pin\b|password|ssn/i;
+
 export function instructionsFor(brief: Brief, callerName = "Chris Smith"): string {
+  const releasableFields = brief.releasable ?? [];
+  // A value the caller must never say does not belong in its instructions.
+  // A rehearsal on 17 September 2026 had the caller read a card number out
+  // under pressure although the rule above forbade it (spec 9.5.1).
   const facts = Object.entries(brief.facts)
-    .map(([key, value]) => `- ${key}: ${value}`)
+    .map(([key, value]) =>
+      SENSITIVE_FIELD.test(key) && !releasableFields.includes(key)
+        ? `- ${key}: ${callerName} holds this. You do not have it and must never say it.`
+        : `- ${key}: ${value}`,
+    )
     .join("\n");
   const releasable = brief.releasable?.length
     ? brief.releasable.map((field) => `- ${field}`).join("\n")

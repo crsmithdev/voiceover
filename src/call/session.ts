@@ -13,6 +13,7 @@ import {
   AgentSession,
   InferenceRunner,
   inference,
+  llm,
   stt as sttNs,
   tokenize,
   tts as ttsNs,
@@ -20,6 +21,7 @@ import {
 import * as openai from "@livekit/agents-plugin-openai";
 import * as silero from "@livekit/agents-plugin-silero";
 import { type Brief, instructionsFor } from "./brief.ts";
+import { prompt } from "../prompts.ts";
 import { WhisperSTT } from "../speech/stt.ts";
 import { PiperTTS } from "../speech/tts.ts";
 import { constants } from "./state.ts";
@@ -38,7 +40,12 @@ export interface Engines {
   close(): Promise<void>;
 }
 
-export async function buildSession(brief: Brief): Promise<Engines> {
+export interface SessionHooks {
+  /** 9.8: the caller names a detail it could not give, so the report can carry it. */
+  onDeferred?(detail: string): void;
+}
+
+export async function buildSession(brief: Brief, hooks: SessionHooks = {}): Promise<Engines> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set; put it in .env");
 
@@ -85,7 +92,30 @@ export async function buildSession(brief: Brief): Promise<Engines> {
   }
 
   const session = new AgentSession(options);
-  const agent = new Agent({ instructions: instructionsFor(brief) });
+  const agent = new Agent({
+    instructions: instructionsFor(brief),
+    tools: {
+      // 9.8 asks for every blocked item in the report. Nothing else can know
+      // what the caller withheld or deferred, so the caller says it itself.
+      note_deferred_detail: llm.tool({
+        description: prompt("caller.tool.note-deferred"),
+        parameters: {
+          type: "object",
+          properties: {
+            detail: {
+              type: "string",
+              description: "One short line naming what was asked for and why it was not given.",
+            },
+          },
+          required: ["detail"],
+        },
+        execute: async ({ detail }: { detail: string }) => {
+          hooks.onDeferred?.(detail);
+          return "Noted for the report. Carry on with the call.";
+        },
+      }),
+    },
+  });
 
   return {
     session,

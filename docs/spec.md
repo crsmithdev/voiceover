@@ -269,6 +269,19 @@ telephone-grade audio.
 9.7 If the other party needs an unknown fact to continue, the caller ends the call politely and offers a callback or a text message.
 9.8 The caller reports every blocked item to Chris with the call result.
 
+9.5.1 **Decided. A withheld value never enters the prompt.** A sensitive field
+that the brief does not mark releasable is listed to the caller by name only,
+with the note that Chris holds it and the caller does not have it. So "I do not
+have that detail" is true rather than obedient. A rehearsal on 17 September 2026
+had the caller read a card number out under pressure, with the rule of 9.5 in
+its instructions; the rule is kept, and the value is now out of reach.
+
+9.8.1 **Decided. The caller reports its own blocked items.** It has one tool,
+`note_deferred_detail`, and the rules tell it to call the tool before it answers
+whenever it withholds or defers anything. Nothing else can know what was asked,
+so a report built without it always said "blocked: none". The tool's description
+and that rule are both editable (18.16).
+
 9.9 This section holds the only logic in the product that the framework does not
 supply. It gets the test weight to match. The layer one test drives it directly
 with adversarial briefs, and more than one test personality probes for facts the
@@ -348,6 +361,13 @@ share a clock, skip the network, and are built from the same code, so they agree
 by construction. It finds problems between two local processes and little else.
 Build it after the first real call, and only if layer one and layer four leave a
 gap.
+
+12.8.1 **The runner.** `bun scripts/rehearse.ts` drives scripted rehearsals
+without a browser: a personality, a brief, a list of challenges, and assertions
+on the report. It checks the outcome, that no question about being a machine is
+left owed, that a deferred detail reached the report, that the caller said what
+the case expects, and that no withheld value was ever spoken. Run it after a
+change to a prompt, the caller or the pipeline.
 
 12.9 Test personalities include: a slow talker, an old-sounding person, a quiet
 person, a rambler, a person who trails off, a person who says "uh-huh" in the
@@ -535,9 +555,16 @@ was the narrowband version hearing a word that the clean version dropped. The
 noisy version turned "on is" into "on his", and put a word in front of a
 sentence. Those are the errors that change what the caller believes it was told.
 
-15.12 The noise in that test is not seeded, so the noisy row moves between runs,
-between 3 and 9 words. Replace it with a fixed noise file before anyone uses it
-as a threshold.
+15.12 **Fixed on 17 September 2026.** The noise is now one seeded file, and the
+fixtures are kept rather than made afresh. Two runs in a row then gave the same
+figures: 8 of 10 lines identical and 2 words adrift, on both the narrowband and
+the noisy row. The row is a threshold now.
+
+15.12.1 The seed alone was not enough, and the reason is worth writing down:
+Piper writes different audio for the same sentence on every call, so a bench
+that synthesises each time measures the voice's variance too. The transcriber
+itself is repeatable: the same file three times gave the same words. Only the
+kept corpus makes the measurement stable, which is what 12.5 asks for.
 
 15.13 The speech is synthetic and the line is simulated. Real speech on a real
 line is layer four, and nothing here replaces it.
@@ -608,6 +635,17 @@ silence. Replies arrived 1.7 to 2.9 seconds after the other side stopped.
 
 15.15.10 The caller recorded up to five false interruptions in one rehearsal,
 mostly while the receiver spoke in fragments. Each one resumed.
+
+15.15.11 A rehearsal on 17 September 2026 had the caller say "I have a Visa
+ending in 4417" when a receptionist asked for a card to hold a booking. The card
+was a fact of the brief and was not marked releasable, and the instruction of
+9.5 was in the prompt. So the prompt alone does not hold this line, and 9.5.1
+takes the value out of the prompt.
+
+15.15.12 In the same run the caller refused the card correctly but never called
+the tool of 9.8.1, so the report said nothing was blocked. A sharper rule and a
+sharper tool description fixed it: the next runs recorded the deferral. A
+prompt change is what fixed it, so the runner of 12.8.1 is what proves it.
 
 15.16 **Still to measure, in this order.** The whole path, end to end, on a real telephone leg. The
 transport time both ways. The false-cutoff rate of v1-mini on telephone-grade
@@ -774,6 +812,12 @@ clock instead. A worker is a daemon that receives a job and joins a room, so the
 dial becomes a separate step that creates the room and dispatches to it. That is
 the framework's own shape and it restores 8.4.
 
+18.14.2 An attempt on 17 September 2026 to load the local model inside a
+standalone session failed on purpose: the detector reads the inference executor
+off the framework's job context, and the executor and the context can only be
+built from parts the package does not export. Faking them would break on the
+next release. So 18.14 stands, and the worker model is the way to 8.4.
+
 18.14.1 The bridge ships a fixed 1.5 second pause and a road test of it felt
 good, so a clock is not unusable in itself. The judgement is that a stranger on a
 business line is less patient than Chris in his own car, and that a model reading
@@ -801,10 +845,11 @@ had queued, and says fixed words that cannot be interrupted. A reply generated
 from an instruction was swallowed by the receiver's own next turn, and a test
 that sometimes does not happen proves nothing.
 
-18.15.3 The rehearsal tells the state machine about each turn after the
-framework has handled it. `scripts/call.ts` does not, so on a real call the
-disclosure debt of 10.4 is set and never cleared, and the report warns about
-any call where the question was asked. That is a fault to fix there.
+18.15.3 **Fixed on 17 September 2026.** Both paths share one bridge,
+`src/call/bridge.ts`: it tells the state machine about each turn after the
+framework has handled it, collects what the report needs, and writes the report.
+The disclosure debt of 10.4 now clears on a real call as it does in a rehearsal,
+and `scripts/call.ts` also closes on the soft limit instead of only logging it.
 
 18.16 **Decided. Every prompt an agent reads is editable in the user
 interface**, at Chris's request on 17 September 2026. That covers the caller's

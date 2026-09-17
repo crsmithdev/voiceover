@@ -11,14 +11,16 @@
  */
 import { Room } from "@livekit/rtc-node";
 import { initializeLogger, voice as voiceNs } from "@livekit/agents";
+import { SessionBridge } from "../src/call/bridge.ts";
 import { AccessToken, SipClient } from "livekit-server-sdk";
 import type { Brief } from "../src/call/brief.ts";
 import { gate, normalise, ownedNumbers } from "../src/call/numbers.ts";
 import { readHistory, recordDial, withinRate } from "../src/call/rate.ts";
-import { buildReport, summarise } from "../src/call/report.ts";
+import { summarise } from "../src/call/report.ts";
 import { writeReport } from "../src/call/reportStore.ts";
 import { buildSession } from "../src/call/session.ts";
-import { type Event, constants, initial, step } from "../src/call/state.ts";
+import { prompt } from "../src/prompts.ts";
+import { constants } from "../src/call/state.ts";
 
 const need = (name: string): string => {
   const value = process.env[name];
@@ -52,7 +54,12 @@ if (!rate.allowed) process.exit(1);
 
 initializeLogger({ pretty: true, level: "warn" });
 console.log("warming the speech engines...");
-const engines = await buildSession(brief);
+// The bridge collects what the report needs, and the caller's own tool tells it
+// which details were deferred (9.8).
+const bridge = new SessionBridge({
+  onEvent: (text) => console.log(`event: ${text}`),
+});
+const engines = await buildSession(brief, { onDeferred: (detail) => bridge.noteDeferred(detail) });
 console.log("engines: ready");
 
 if (!dial) {
@@ -74,29 +81,8 @@ await room.connect(url, await token.toJwt(), { autoSubscribe: true, dynacast: fa
 await engines.session.start({ agent: engines.agent, room });
 console.log(`room: joined ${roomName}`);
 
-let state = initial();
-const heard: string[] = [];
-const said: string[] = [];
-const apply = (event: Event) => {
-  state = step(state, event, constants).state;
-};
-
-engines.session.on(voiceNs.AgentSessionEventTypes.ConversationItemAdded, (item: unknown) => {
-  const entry = item as { item?: { role?: string; textContent?: string } };
-  const text = entry.item?.textContent?.trim();
-  if (!text) return;
-  if (entry.item?.role === "user") {
-    heard.push(text);
-    // 10.4: the debt is set by the question, not by whether it was answered.
-    if (/\b(a\s*)?(robot|machine|recording|ai|a\.?i\.?|artificial)\b/i.test(text)) {
-      apply({ kind: "transcript", at: Date.now(), words: text.split(/\s+/).length, disclosureQuestion: true });
-    }
-  } else if (entry.item?.role === "assistant") {
-    said.push(text);
-  }
-});
-
-apply({ kind: "dial", at: Date.now() });
+bridge.attach(engines.session);
+bridge.apply({ kind: "dial", at: Date.now() });
 await recordDial({ at: startedAt, number: target });
 
 const sip = new SipClient(url, apiKey, apiSecret);
@@ -109,7 +95,7 @@ await sip.createSipParticipant(need("LIVEKIT_TRUNK_ID"), target, roomName, {
   waitUntilAnswered: true,
 });
 // 13.6.2: nothing here classifies the answer, so it is recorded as unknown.
-apply({ kind: "answered", at: Date.now(), by: "unknown" });
+bridge.apply({ kind: "answered", at: Date.now(), by: "unknown" });
 console.log("answer: something picked up");
 
 /** Section 11. The soft limit closes, the hard limit cuts. */
@@ -120,29 +106,36 @@ engines.session.once(voiceNs.AgentSessionEventTypes.Close, () => {
   closed = true;
 });
 
+let reason: "goal-closed" | "soft-limit" | "hard-limit" | "far-end-hung-up" | "caller-hung-up" = "caller-hung-up";
+let softAnnounced = false;
 while (!closed && Date.now() < hardAt) {
-  apply({ kind: "tick", at: Date.now() });
-  if (Date.now() > softAt && state.phase !== "closing" && state.phase !== "ended") {
+  bridge.apply({ kind: "tick", at: Date.now() });
+  if (Date.now() > softAt && !softAnnounced) {
+    softAnnounced = true;
+    reason = "soft-limit";
     console.log("soft limit: closing");
+    // 11.2. The limit starts the close; it never cuts a sentence.
+    engines.session.generateReply({ instructions: prompt("caller.soft-limit"), allowInterruptions: false });
   }
   if (room.remoteParticipants.size === 0 && Date.now() > startedAt + 5_000) {
-    apply({ kind: "farEndHungUp", at: Date.now() });
+    reason = "far-end-hung-up";
     break;
   }
   await Bun.sleep(500);
 }
-if (state.phase !== "ended") apply({ kind: "hangUp", at: Date.now() });
+if (!closed && Date.now() >= hardAt) reason = "hard-limit";
 
 await engines.session.close?.();
 await room.disconnect();
 await engines.close();
 
-const report = buildReport(state, { number: target, goal: brief.goal, heard, said, blocked: [] }, Date.now());
+const report = bridge.report(reason, { number: target, goal: brief.goal }, Date.now(), Date.now() - startedAt);
 const path = await writeReport(report);
 console.log(`\n${summarise(report)}`);
-console.log(`\nheard ${heard.length}, said ${said.length}`);
-for (const line of heard) console.log(`  them: ${line}`);
-for (const line of said) console.log(`  us:   ${line}`);
+const middle = bridge.middleReply();
+console.log(`\nheard ${bridge.heard.length}, said ${bridge.said.length}, replies middle ${middle === null ? "none" : `${middle.toFixed(2)} s`}`);
+for (const line of bridge.heard) console.log(`  them: ${line}`);
+for (const line of bridge.said) console.log(`  us:   ${line}`);
 console.log(`\nreport: ${path}`);
 
 // rtc-node keeps handles open after disconnect (see scripts/test-call.ts).

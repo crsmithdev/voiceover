@@ -8,7 +8,7 @@ const { _clearOverrides, listPrompts, prompt, resetPrompt, setPrompt } = await i
 
 const brief = {
   goal: "Book a cleaning.",
-  facts: { name: "Chris Smith", "date of birth": "1 April 1980" },
+  facts: { name: "Chris Smith", practice: "Bayview Dental" },
   releasable: ["name"],
   limits: ["Any fee"],
 };
@@ -19,7 +19,7 @@ describe("prompts", () => {
   test("the defaults fill every placeholder from the brief", () => {
     const text = instructionsFor(brief);
     expect(text).toContain("GOAL: Book a cleaning.");
-    expect(text).toContain("- date of birth: 1 April 1980");
+    expect(text).toContain("- practice: Bayview Dental");
     expect(text).toContain("- Any fee");
     expect(text).not.toMatch(/\{[a-z_]+\}/);
   });
@@ -42,5 +42,19 @@ describe("prompts", () => {
   test("saving the default is the same as a reset", () => {
     setPrompt("receiver.frame", prompt("receiver.frame"));
     expect(listPrompts().find((p) => p.id === "receiver.frame")?.edited).toBe(false);
+  });
+});
+
+describe("what the instructions carry (9.5)", () => {
+  test("a sensitive field that is not releasable never carries its value", () => {
+    const text = instructionsFor({
+      goal: "Book a cleaning.",
+      facts: { Name: "Chris Smith", Card: "Visa ending 4417", "Insurance member id": "AB-991" },
+      releasable: ["Insurance member id"],
+    });
+    expect(text).not.toContain("4417");
+    expect(text).toContain("Card: Chris Smith holds this. You do not have it and must never say it.");
+    // A field the brief marks releasable keeps its value (9.5).
+    expect(text).toContain("Insurance member id: AB-991");
   });
 });
