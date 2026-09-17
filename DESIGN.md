@@ -24,7 +24,6 @@ colors:
   lit-ink: "#17130c"
   green-lit-hover: "#48ad68"
   red-lit-hover: "#e84a3a"
-  red-text-on-paper: "#a8261a"
   warn-text: "#f5b3aa"
   green-text: "#7fc796"
   them-text: "#d6e2d6"
@@ -164,18 +163,22 @@ components:
   onair-lamp-rehearsal:
     backgroundColor: "{colors.amber}"
     textColor: "{colors.lit-ink}"
-  rundown-sheet:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.sm}"
+  rundown-panel:
+    backgroundColor: "{colors.console-raised}"
+    textColor: "{colors.legend}"
+    rounded: "{rounded.md}"
     width: "360px"
   rundown-field:
+    backgroundColor: "{colors.paper}"
     textColor: "{colors.ink}"
     typography: "{typography.body}"
-    rounded: "0"
-    padding: "4px 0"
+    rounded: "{rounded.md}"
+    padding: "5px 8px"
+  rundown-field-locked:
+    backgroundColor: "{colors.paper-rule}"
+    textColor: "{colors.ink}"
   rundown-stamp:
-    textColor: "{colors.ink-dim}"
+    textColor: "{colors.legend-dim}"
     typography: "{typography.label-small}"
     rounded: "{rounded.sm}"
     padding: "5px 8px"
@@ -183,16 +186,16 @@ components:
     backgroundColor: "{colors.red}"
     textColor: "{colors.red-lit-legend}"
   rundown-button:
-    textColor: "{colors.ink}"
+    textColor: "{colors.legend}"
     typography: "{typography.label}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.md}"
     padding: "5px 10px"
   rundown-button-hover:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.paper}"
+    backgroundColor: "{colors.legend}"
+    textColor: "{colors.console}"
   line-type-selected:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.paper}"
+    backgroundColor: "{colors.legend}"
+    textColor: "{colors.console}"
     typography: "{typography.label-small}"
     padding: "7px 2px"
   programme-monitor:
@@ -269,14 +272,14 @@ components:
 
 **Creative North Star: "The Control Room"**
 
-A call runs like a live broadcast. The brief is the rundown, the call is on air, and the report is the as-run log. The interface is a broadcast gallery: a console of warm grey panels, one sheet of cool paper, and backlit lamps that show state.
+A call runs like a live broadcast. The brief is the rundown, the call is on air, and the report is the as-run log. The interface is a broadcast gallery: a console of warm grey panels, paper where Chris writes, and backlit lamps that show state.
 
-The system has two materials. The console is dark, warm and matte. It holds the programme monitor, the studio clock, the tally and the keys. The rundown sheet is the only paper surface, and it is the only place where Chris writes. Colour belongs to the lamps. A lamp is dark until a state lights it, and it stays in a fixed place.
+The system has two materials. The console is dark, warm and matte. It holds every panel, including the rundown. Paper is the writing surface: the rundown fields are strips of paper set into the console, and they are the only place where Chris writes. Colour belongs to the lamps. A lamp is dark until a state lights it, and it stays in a fixed place.
 
 The density is operational. One person watches one call and keeps a hand near the key. Every legend is short, condensed and uppercase. Every sentence is plain Barlow in sentence case. The world rejects the agent-dashboard default: a navigation sidebar, chat bubbles and status pills.
 
 **Key Characteristics:**
-- Warm powder-coat console grey around one cool paper rundown sheet
+- Warm powder-coat console grey, with cool paper only in the rundown fields
 - Red, green and amber lamps with a dark off state in fixed cells
 - Condensed uppercase legends; plain sentence-case body text
 - Mono only for timecodes, numbers and latency figures in rows
@@ -285,7 +288,7 @@ The density is operational. One person watches one call and keeps a hand near th
 
 ## Colors
 
-The palette is a dark warm console, one cool paper sheet, and three lamp colours that mean state and nothing else.
+The palette is a dark warm console, cool paper in the rundown fields, and three lamp colours that mean state and nothing else.
 
 ### Primary
 - **Tally Red** (`red`): The caller's microphone is live. It lights the ON AIR lamp, the Speaking cell, the hang-up key, the caller dot in the feed, the hard-limit tick and the locked rundown stamp.
@@ -293,7 +296,6 @@ The palette is a dark warm console, one cool paper sheet, and three lamp colours
 - **Red Signal Text** (`red-text`): Red words on the dark console, such as a refused event, a Not clean flag and the Hard 12 caption.
 - **Red Lamp Legend** (`red-lit-legend`): The warm white legend on a lit red lamp or key.
 - **Red Key Hover** (`red-lit-hover`): The hang-up key under the pointer.
-- **Paper Red** (`red-text-on-paper`): A refused number hint on the rundown sheet.
 - **Warning Text** (`warn-text`): Words inside a red warning box on the console.
 
 ### Secondary
@@ -316,10 +318,10 @@ The palette is a dark warm console, one cool paper sheet, and three lamp colours
 - **Dim Legend** (`legend-dim`): Panel legends, timecodes, secondary text and captions on the console.
 - **Unlit Lamp** (`lamp-off`): The face of every dark tally cell, preflight dot and disabled key.
 - **Unlit Lamp Legend** (`lamp-off-legend`): The legend on an unlit lamp or a disabled key.
-- **Printout White** (`paper`): The rundown sheet. It is cool against the warm console.
-- **Paper Rule** (`paper-rule`): Row lines and field underlines on the rundown sheet.
-- **Ink** (`ink`): Text, the header rule, the selected line type and the focused field underline on paper.
-- **Dim Ink** (`ink-dim`): Slot names, hints and the sheet foot on paper.
+- **Printout White** (`paper`): The rundown fields. Each field is cool against the warm console.
+- **Paper Rule** (`paper-rule`): A locked rundown field, which goes flat when the call is on air.
+- **Ink** (`ink`): The text Chris types in a rundown field.
+- **Dim Ink** (`ink-dim`): The placeholder in an empty rundown field.
 - **Lit Ink** (`lit-ink`): The dark legend on a lit green, amber or white lamp.
 - **Clock Seconds** (`clock-seconds`): A lit seconds LED on the studio clock. It is warm white so only the limit ticks carry colour.
 - **Guard Frame** (`guard`): The frame around the hang-up key while a call is live.
@@ -332,7 +334,7 @@ The palette is a dark warm console, one cool paper sheet, and three lamp colours
 
 **The Dark Lamp Rule.** A lamp never disappears. When its state ends, it goes back to its unlit face in the same place.
 
-**The One Sheet Rule.** Paper is for the rundown only. All other surfaces use the console greys.
+**The Paper Is The Pen Rule.** Paper marks where Chris writes: the rundown fields, and nothing else. Every other surface, the rundown panel included, uses the console greys.
 
 ## Typography
 
@@ -366,7 +368,7 @@ The palette is a dark warm console, one cool paper sheet, and three lamp colours
 
 ## Layout
 
-The desktop room is a three-column grid under a 56px gallery strip. The rundown sheet is 360px on the left. The programme monitor fills the centre. The console is 320px on the right. The room fills the viewport height, and each column scrolls on its own.
+The desktop room is a three-column grid under a 56px gallery strip. The rundown panel is 360px on the left. The programme monitor fills the centre. The console is 320px on the right. The room fills the viewport height, and each column scrolls on its own.
 
 The 8px unit sets the room gutters (16px) and the gallery strip padding (24px). Inside panels and rows, the spacing uses a 4px step: 4, 8, 12, 16, 20 and 24px. The feed line is a grid of 56px timecode, 72px speaker and text columns. The reply gap line indents to the text column.
 
@@ -376,16 +378,16 @@ The Log view replaces all three columns with a list and a detail pane at 7fr to 
 
 | Breakpoint | Behaviour |
 |---|---|
-| above 1180px | Three columns: rundown sheet, programme monitor, console |
-| 1180px and below | The console becomes one row across the top: clock, tally, readouts, key. The rundown sheet (330px) and the programme monitor sit below. |
-| 760px and below | One column. The console is a sticky bottom bar with a 96px clock and the key. The tally and readouts hide, and a phase caption shows under the clock. During and after a call, the programme monitor moves above the rundown sheet. |
+| above 1180px | Three columns: rundown panel, programme monitor, console |
+| 1180px and below | The console becomes one row across the top: clock, tally, readouts, key. The rundown panel (330px) and the programme monitor sit below. |
+| 760px and below | One column. The console is a sticky bottom bar with a 96px clock and the key. The tally and readouts hide, and a phase caption shows under the clock. During and after a call, the programme monitor moves above the rundown panel. |
 
 ## Elevation & Depth
 
-Depth is physical, and each material has one treatment. The rundown sheet lies on the console with a soft drop shadow. The programme monitor sinks into the console with an inset shadow. Panels and cart keys sit flush with a 1px top highlight. Only a lit lamp gives off light.
+Depth is physical, and each material has one treatment. A rundown field is set into the console with a shallow inset shadow. The programme monitor sinks deeper into the console with an inset shadow. Panels and cart keys sit flush with a 1px top highlight. Only a lit lamp gives off light.
 
 ### Shadow Vocabulary
-- **Paper on console** (`box-shadow: 0 6px 18px rgba(0,0,0,.35)`): The rundown sheet only.
+- **Paper inset** (`box-shadow: inset 0 1px 2px rgba(0,0,0,.3)`): A rundown field. A locked field loses it.
 - **Monitor well** (`box-shadow: inset 0 2px 10px rgba(0,0,0,.45)`): The programme monitor.
 - **Panel highlight** (`box-shadow: inset 0 1px 0 rgba(255,255,255,.05)`): Console panels. Cart keys use .06.
 - **Unlit lamp** (`box-shadow: inset 0 1px 2px rgba(0,0,0,.45)`): Tally cells. Preflight dots use .6.
@@ -397,9 +399,9 @@ Depth is physical, and each material has one treatment. The rundown sheet lies o
 
 ## Shapes
 
-The corners are nearly square, like a panel of machined parts. Paper, lamp cells and stamps use a 2px radius. Panels, mode keys, cart keys and inputs use 3px. The big key uses 4px. Rundown fields have no radius and no box; they are a 1px underline. Lamps in the feed and the preflight are round dots.
+The corners are nearly square, like a panel of machined parts. Lamp cells and stamps use a 2px radius. Panels, mode keys, cart keys, rundown fields and inputs use 3px. The big key uses 4px. Lamps in the feed and the preflight are round dots.
 
-Borders are 1px. Console parts take a dark edge, and paper parts take an ink line. The rundown header has a 2px ink rule. The guard around the hang-up key is a 2px frame, 6px out, with a 7px radius.
+Borders are 1px and take a dark edge. A rundown field has no border; the paper fill is its edge. The rundown header has a 2px Console Rule. The guard around the hang-up key is a 2px frame, 6px out, with a 7px radius.
 
 The studio clock is a ring of 60 second LEDs, a thin minute arc and 12 minute ticks. The ticks at 8 and 12 are larger and carry amber and red.
 
@@ -413,18 +415,18 @@ The keys are hardware. They are flat, near square and lit by state.
 - **Hang-up key:** During a call the TAKE key becomes Tally Red and shows the Shift H shortcut. A 2px guard frame surrounds it.
 - **New rundown key:** After a call, the key turns Legend with a Lit Ink legend.
 - **Press:** Keys move down 1px for 80ms. Colour changes take 150 to 220ms.
-- **Rundown buttons:** On paper, a 1px ink outline. On hover, the fill turns Ink and the legend turns Printout White.
+- **Rundown buttons:** A 1px Console Rule outline with a Legend face. On hover, the fill turns Legend and the legend turns console grey.
 
 ### Chips
-- **Rundown stamp:** A small bordered legend at the top right of the rundown sheet. It reads Editable, then Locked on air in Tally Red, then Cleared with a dashed border.
+- **Rundown stamp:** A small bordered legend at the top right of the rundown panel. It reads Editable, then Locked on air in Tally Red, then Cleared with a dashed border.
 - **Log flags:** A dot and a short word in amber or red text. They have no fill.
 
 ### Cards / Containers
-- **Corner Style:** 3px on console panels; 2px on the rundown sheet.
+- **Corner Style:** 3px on console panels, the rundown panel included.
 - **Background:** Console Raised for panels; Console Well for the programme monitor and the log detail.
 - **Shadow Strategy:** See Elevation & Depth.
 - **Border:** 1px Panel Edge.
-- **Internal Padding:** 14px in panels; 16px by 24px in the monitor head; 20px in the rundown sheet.
+- **Internal Padding:** 14px in panels; 16px by 24px in the monitor head; 20px in the rundown panel.
 
 ### Inputs / Fields
 - **Rundown field:** No box. A 1px Paper Rule underline, transparent ground, Ink text and a red caret.
@@ -468,7 +470,7 @@ All transitions use `cubic-bezier(.16, 1, .3, 1)`. Under reduced motion, every a
 - **Do** return a lamp to its unlit face (`lamp-off` or `red-glass`) when its state ends.
 - **Do** write every control and panel name as a condensed uppercase legend with open tracking (about 0.08em).
 - **Do** set timecodes, log numbers and latency figures in Red Hat Mono.
-- **Do** keep the rundown sheet as the only paper surface, with underline fields and no boxes.
+- **Do** keep the rundown fields as the only paper surface, each one a strip set into the panel.
 - **Do** keep corners between 2px and 4px on panels, keys and lamps.
 - **Do** keep small text on a lit red lamp at 4.5:1 contrast or more.
 
@@ -476,6 +478,6 @@ All transitions use `cubic-bezier(.16, 1, .3, 1)`. Under reduced motion, every a
 - **Don't** add a navigation sidebar, chat bubbles or rounded status pills.
 - **Don't** use red, green or amber as decoration, accents or chart colours outside the latency split.
 - **Don't** give a surface a glow unless it is a lit lamp.
-- **Don't** give the console a drop shadow; only the rundown sheet casts one.
+- **Don't** give any surface a drop shadow; depth is an inset, or a 1px top highlight.
 - **Don't** move, hide or reorder tally cells to show a phase. Light a different cell.
 - **Don't** put body sentences in the condensed face or in uppercase.

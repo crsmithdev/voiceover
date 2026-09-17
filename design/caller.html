@@ -125,17 +125,19 @@ h2 { margin: 0; }
 .room:not([data-view="log"]) > .archive { display: none; }
 .room:not([data-view="prompts"]) > .promptsview { display: none; }
 
-/* ---------- rundown sheet ---------- */
+/* ---------- rundown panel ---------- */
+/* The panel is console; only the fields are paper, because they are the one
+   place Chris writes. */
 .rundown {
-  color-scheme: light;
   display: flex;
   flex-direction: column;
   min-height: 0;
   margin: calc(var(--unit) * 2) 0 calc(var(--unit) * 2) calc(var(--unit) * 2);
-  background: var(--paper);
-  color: var(--ink);
-  border-radius: 2px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+  border: 1px solid #1d1e1a;
+  border-radius: 3px;
+  background: var(--console-raised);
+  color: var(--legend);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
   overflow: hidden;
 }
 .sheet-head {
@@ -144,7 +146,7 @@ h2 { margin: 0; }
   justify-content: space-between;
   gap: 12px;
   padding: 16px 20px 12px;
-  border-bottom: 2px solid var(--ink);
+  border-bottom: 2px solid var(--rule);
 }
 .sheet-head h2 { font: 700 20px/1 var(--cond); letter-spacing: .1em; text-transform: uppercase; }
 .sheet-state {
@@ -152,9 +154,9 @@ h2 { margin: 0; }
   letter-spacing: .1em;
   text-transform: uppercase;
   padding: 5px 8px;
-  border: 1px solid var(--ink-dim);
+  border: 1px solid var(--rule);
   border-radius: 2px;
-  color: var(--ink-dim);
+  color: var(--legend-dim);
 }
 .rundown[data-state="locked"] .sheet-state { background: var(--red); border-color: var(--red); color: #fff4ea; }
 .rundown[data-state="cleared"] .sheet-state { border-style: dashed; }
@@ -164,35 +166,37 @@ h2 { margin: 0; }
   grid-template-columns: 84px minmax(0, 1fr);
   gap: 4px 12px;
   padding: 14px 0;
-  border-bottom: 1px solid var(--paper-rule);
+  border-bottom: 1px solid var(--rule);
 }
 .slot-name {
-  padding-top: 5px;
+  padding-top: 9px;
   font: 600 13px/1.2 var(--cond);
   letter-spacing: .08em;
   text-transform: uppercase;
-  color: var(--ink-dim);
+  color: var(--legend-dim);
 }
 .slot-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+/* a paper strip set into the console: the writing surface, and the only one */
 .field {
+  color-scheme: light;
   width: 100%;
-  padding: 4px 0;
+  padding: 5px 8px;
   border: 0;
-  border-bottom: 1px solid var(--paper-rule);
-  border-radius: 0;
-  background: transparent;
+  border-radius: 3px;
+  background: var(--paper);
   color: var(--ink);
   caret-color: var(--red);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .3);
   resize: none;
 }
-.field::placeholder { color: #5f625b; }
-.field:focus { outline: none; border-bottom: 2px solid var(--ink); padding-bottom: 3px; }
-.field::selection, .rundown ::selection { background: var(--ink); color: var(--paper); }
+.field::placeholder { color: #6b6e67; }
+.field:focus { outline: 2px solid var(--focus); outline-offset: 1px; }
+.field::selection { background: var(--ink); color: var(--paper); }
 textarea.field { line-height: 1.45; overflow: hidden; }
-.hint { margin: 0; font-size: 13px; line-height: 1.4; color: var(--ink-dim); }
-.hint.bad { color: #a8261a; }
+.hint { margin: 0; font-size: 13px; line-height: 1.4; color: var(--legend-dim); }
+.hint.bad { color: var(--red); }
 
-.seg { display: flex; border: 1px solid var(--ink); border-radius: 2px; overflow: hidden; }
+.seg { display: flex; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
 .seg label { flex: 1; position: relative; }
 .seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
 .seg span {
@@ -202,11 +206,11 @@ textarea.field { line-height: 1.45; overflow: hidden; }
   font: 600 12px/1 var(--cond);
   letter-spacing: .02em;
   text-transform: uppercase;
-  color: var(--ink);
+  color: var(--legend-dim);
 }
-.seg label + label span { border-left: 1px solid var(--ink); }
-.seg input:checked + span { background: var(--ink); color: var(--paper); }
-.seg input:focus-visible + span { outline: 2px solid var(--red); outline-offset: -3px; }
+.seg label + label span { border-left: 1px solid var(--rule); }
+.seg input:checked + span { background: var(--legend); color: var(--console); }
+.seg input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: -3px; }
 
 .facts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .fact { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 10px; align-items: end; padding-bottom: 4px; }
@@ -220,34 +224,35 @@ textarea.field { line-height: 1.45; overflow: hidden; }
   font: 600 11px/1 var(--cond);
   letter-spacing: .06em;
   text-transform: uppercase;
-  color: var(--ink-dim);
+  color: var(--legend-dim);
   cursor: pointer;
   padding: 4px 0;
 }
-.rel input { accent-color: var(--ink); margin: 0; }
+.rel input { accent-color: var(--legend); margin: 0; }
 .fact-remove {
   display: none;
 }
 .sheet-btn {
   align-self: flex-start;
   padding: 5px 10px;
-  border: 1px solid var(--ink);
-  border-radius: 2px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
   background: transparent;
   font: 600 13px/1 var(--cond);
   letter-spacing: .06em;
   text-transform: uppercase;
-  color: var(--ink);
+  color: var(--legend);
 }
-.sheet-btn:hover { background: var(--ink); color: var(--paper); }
+.sheet-btn:hover { background: var(--legend); color: var(--console); }
 .sheet-foot {
   margin: 0;
   padding: 12px 20px;
-  border-top: 1px solid var(--paper-rule);
+  border-top: 1px solid var(--rule);
   font-size: 13px;
-  color: var(--ink-dim);
+  color: var(--legend-dim);
 }
-.rundown[data-state="locked"] .field { border-bottom-color: transparent; }
+/* on air the sheet is set: the paper goes flat and stops inviting a caret */
+.rundown[data-state="locked"] .field { background: var(--paper-rule); box-shadow: none; caret-color: transparent; }
 .rundown[data-state="locked"] .sheet-btn,
 .rundown[data-state="locked"] .rel input { pointer-events: none; }
 .rundown[data-state="locked"] .sheet-btn { visibility: hidden; }
@@ -255,14 +260,14 @@ textarea.field { line-height: 1.45; overflow: hidden; }
 
 /* the brief is not stored: each row strikes, then empties */
 .slot.clearing .slot-main {
-  background: linear-gradient(var(--ink), var(--ink)) no-repeat 0 50% / 0 2px;
+  background: linear-gradient(var(--legend), var(--legend)) no-repeat 0 50% / 0 2px;
   animation: strike .36s var(--ease) forwards, fade .3s ease-out .36s forwards;
 }
 @keyframes strike { to { background-size: 100% 2px; } }
 @keyframes fade { to { opacity: .12; } }
 
 .empty-sheet { padding: 28px 0; display: flex; flex-direction: column; gap: 12px; }
-.empty-sheet p { margin: 0; color: var(--ink-dim); max-width: 34ch; }
+.empty-sheet p { margin: 0; color: var(--legend-dim); max-width: 34ch; }
 
 /* ---------- programme monitor ---------- */
 .programme {
