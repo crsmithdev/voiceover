@@ -252,14 +252,16 @@ export class Rehearsal {
       dynacast: false,
     });
     this.wireReceiver(this.receiver.session);
-    // No identity here: a job joins as `agent-<job id>`, so the receiver takes
-    // whoever publishes audio. The browser's listener publishes nothing. The
-    // kinds matter: the framework accepts a standard, SIP or connector
-    // participant by default, and the caller is now an agent.
+    // No identity here: a job joins as `agent-<job id>`, which is not known
+    // until the job starts. The framework links the first participant of an
+    // accepted kind and does not check that it publishes audio. The browser's
+    // listener is a standard participant and joins first, so a standard kind
+    // here makes the receiver listen to a silent participant for the whole
+    // call. In a rehearsal the caller is always an agent job (18.14).
     await this.receiver.session.start({
       agent: this.receiverAgent(this.persona),
       room: this.receiverRoom,
-      inputOptions: { participantKinds: [ParticipantKind.AGENT, ParticipantKind.STANDARD, ParticipantKind.SIP] },
+      inputOptions: { participantKinds: [ParticipantKind.AGENT] },
     });
 
     this.emit({ type: "started", room: this.roomName, persona: this.persona.name, answers: this.persona.answers });
