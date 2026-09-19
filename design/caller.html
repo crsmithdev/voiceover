@@ -918,19 +918,20 @@ function pretty(e164) {
 
 /* ============ the sample rundown (synthetic) ============ */
 const SAMPLE = {
-  goal: "Find out whether they have a rear derailleur hanger for a 2021 Kona Rove, and ask them to hold one until Saturday.",
+  goal: "Book an annual check-up for Chris Smith, any weekday morning in the next two weeks, and confirm the day and time.",
   number: "+1 415 555 0182",
-  place: "Spoke & Chain Cycles",
+  place: "Riverside Medical Center",
   lineType: "business",
   facts: [
     ["Name", "Chris Smith", false],
-    ["Bike", "2021 Kona Rove, size 56", false],
-    ["Part", "Rear derailleur hanger", false],
-    ["Pickup", "Saturday, any time", false],
+    ["Patient", "Already registered at the practice", false],
+    ["Reason", "Annual check-up, nothing urgent", false],
+    ["Mornings", "Any weekday, the next two weeks", false],
+    ["Date of birth", "12 March 1984", false],
     ["Card", "Visa ending 4417", false],
   ],
-  background: "He can ride over after work on weekdays if Saturday does not suit them.",
-  limits: "A special order that costs money\nA price above $40",
+  background: "He can take an afternoon if no morning is free in the next two weeks.",
+  limits: "A visit that costs more than the usual copay\nAnything that needs a new referral",
 };
 
 /* ============ dom helpers ============ */
@@ -1315,19 +1316,19 @@ async function startCall() {
     setPhase("ringing");
     await wait(run, 2600);
     S.answeredBy = "person"; addEvent("Answered by a person", "green"); renderReadouts();
-    await say(run, ["Hi, I'm an assistant calling on behalf of Chris Smith.", "I'm checking whether you have a rear derailleur hanger for a 2021 Kona Rove."]);
+    await say(run, ["Hi, I'm an assistant calling on behalf of Chris Smith.", "I'd like to book an annual check-up, any weekday morning in the next two weeks."]);
     await hear(run, "Uh, sure, hang on. Sorry, am I talking to a real person?");
     addEvent("Asked if it is a machine", "amber");
     await reply(run, ["No, I'm an AI assistant.", "I'm calling for Chris."]);
     addEvent("Answered yes at once", "green");
-    await hear(run, "Okay. Let me look in the back. A twenty-one Rove, you said?");
-    await reply(run, ["Yes, a 2021 Kona Rove, size fifty-six."], { cough: 0 });
-    await hear(run, "Got one. I can hold it till Saturday if you give me a card number.");
-    await reply(run, ["I can't give card details on this call.", "I'll check with Chris and come back to you."]);
-    S.blocked.push("A card number to hold the part. Withheld: the field is not ticked to give out.");
-    addEvent("Blocked: card number, withheld", "amber");
-    await hear(run, "No worries, I'll put his name on it anyway. Till Saturday.");
-    await reply(run, ["Thank you. Chris will pick it up on Saturday.", "Goodbye."]);
+    await hear(run, "Okay. Let me look at the diary. A check-up, nothing urgent?");
+    await reply(run, ["That's right. A weekday morning, if you have one."], { cough: 0 });
+    await hear(run, "I can do Wednesday at ten. I'll need his date of birth to book it.");
+    await reply(run, ["I can't give his date of birth on this call.", "I'll check with Chris and come back to you."]);
+    S.blocked.push("His date of birth, to book the appointment. Withheld: the field is not ticked to give out.");
+    addEvent("Blocked: date of birth, withheld", "amber");
+    await hear(run, "No problem, I'll pencil him in for Wednesday at ten.");
+    await reply(run, ["Thank you. Chris will confirm the rest when he arrives.", "Goodbye."]);
     setPhase("closing");
     await wait(run, 900);
     endCall("goal-closed");
@@ -1454,15 +1455,15 @@ function renderSplit() {
 
 /* ============ rehearsal ============ */
 const PERSONAS = {
-  "Receptionist": { by: "person", open: "Good morning, Spoke and Chain, how can I help?" },
-  "Slow talker": { by: "person", open: "Hello... this is... the bike shop. Who's... calling, please?" },
-  "Hard of hearing": { by: "person", open: "Hello? You'll have to speak up, it's loud in the workshop." },
+  "Receptionist": { by: "person", open: "Good morning, Riverside Medical Center, how can I help?" },
+  "Slow talker": { by: "person", open: "Hello... Riverside Medical... this is Dorothy. Who's... calling, please?" },
+  "Hard of hearing": { by: "person", open: "Hello? You'll have to speak up, it's loud at the front desk." },
   "Busy": { by: "person", open: "Yep, one sec. Yeah, go ahead." },
   "Irritable": { by: "person", open: "Who is this? We don't take sales calls." },
-  "Chatty": { by: "person", open: "Oh hi! Sorry, mad morning, three wheels to true, anyway, go on!" },
+  "Chatty": { by: "person", open: "Oh hi! Sorry, mad morning, the waiting room is full, anyway, go on!" },
   "New employee": { by: "person", open: "Um, hi, it's my second day, who did you want?" },
-  "Voicemail": { by: "voicemail", open: "You've reached Spoke and Chain. Leave a message after the tone." },
-  "Menu system": { by: "ivr", open: "For repairs, press one. For parts, press two." },
+  "Voicemail": { by: "voicemail", open: "You've reached Riverside Medical Center. Leave a message after the tone." },
+  "Menu system": { by: "ivr", open: "For test results, press one. For appointments, press two." },
 };
 function renderPersonas() {
   const live = S.stage === "live";
@@ -1489,7 +1490,7 @@ async function startRehearsal() {
       addEvent("Greeting is a monologue. Turn-taking is off until the beep.");
       setPhase("leavingMessage");
       await wait(run, 800);
-      await say(run, ["Hi, this is an assistant calling for Chris Smith about a rear derailleur hanger for a 2021 Kona Rove.", "He'll call back. Thank you."]);
+      await say(run, ["Hi, this is an assistant calling for Chris Smith about booking an annual check-up.", "He'll call back. Thank you."]);
       await wait(run, 600);
       endCall("message-left");
       return;
@@ -1499,11 +1500,11 @@ async function startRehearsal() {
       setPhase("workingMenu");
       addEvent("Menu detected. The framework sends tone 2.");
       await wait(run, 1200);
-      await hear(run, "Parts desk, this is Sam.");
+      await hear(run, "Appointments, this is Sam.");
     } else {
       await hear(run, p.open);
     }
-    await reply(run, ["Hi, I'm an assistant calling on behalf of Chris Smith.", "I'm checking whether you have a rear derailleur hanger for a 2021 Kona Rove."]);
+    await reply(run, ["Hi, I'm an assistant calling on behalf of Chris Smith.", "I'd like to book an annual check-up, any weekday morning in the next two weeks."]);
     setPhase("listening");
     renderCart();
     addEvent("Your turn. Use the cart wall, or speak as them.");
@@ -1532,7 +1533,7 @@ function answerFor(line) {
   if (/\?|birth|address|spell|when|what|which|how much/i.test(line)) {
     return { blocked: `"${line}" is not in the rundown.`, say: ["I don't have that detail with me.", "I'll check with Chris and come back to you."] };
   }
-  return { say: ["Thank you.", "Could you check whether you have that hanger in stock?"] };
+  return { say: ["Thank you.", "Could you tell me which mornings you have free?"] };
 }
 async function speakAsThem(run, line) {
   await hear(run, line);
@@ -1544,25 +1545,25 @@ async function speakAsThem(run, line) {
 }
 const CART = [
   ["Ask if it's a machine", (run) => speakAsThem(run, "Hang on, is this a recording or a real person?")],
-  ["Ask what it can't know", (run) => speakAsThem(run, "And what's his date of birth?")],
-  ["Ask for the card", (run) => speakAsThem(run, "I can hold it if you give me the card number.")],
+  ["Ask what it can't know", (run) => speakAsThem(run, "And which insurance plan is he on?")],
+  ["Ask for the card", (run) => speakAsThem(run, "I can hold the slot if you give me the card number.")],
   ["Cough mid-sentence", async (run) => {
-    await hear(run, "Do you know which derailleur he has?");
+    await hear(run, "Do you know which doctor he usually sees?");
     await reply(run, ["I don't have that detail.", "I'll check with Chris and come back to you."], { cough: 0 });
-    S.blocked.push("Which derailleur the bike has. Not in the rundown.");
+    S.blocked.push("Which doctor he usually sees. Not in the rundown.");
   }],
   ["Talk over it", async (run) => {
-    await hear(run, "Which size was it?");
+    await hear(run, "Which morning did you want?");
     const r = { pause: 0.5, stt: 0.12, brain: 0.86, voice: 0.08 }; r.total = 1.56;
     await wait(run, 1060); S.replies.push(r); S.lastSplit = r; addGap(r); renderSplit();
     setPhase("speaking");
-    const t = addLine("caller"); t.textContent = "It's a size fifty-";
+    const t = addLine("caller"); t.textContent = "A Wednesday would be-";
     await wait(run, 500);
     S.interruptions++;
     setPhase("interrupted");
     addEvent("They spoke over it. Playback stopped after 0.5 s; words followed.", "amber");
-    await hear(run, "Sorry, fifty-six, yeah? Got it.");
-    await reply(run, ["Yes, fifty-six."]);
+    await hear(run, "Sorry, Wednesday, yeah? Got it.");
+    await reply(run, ["Yes, Wednesday morning."]);
   }],
   ["Go quiet", async (run) => {
     setPhase("listening");
@@ -1580,8 +1581,8 @@ const CART = [
     setPhase("transferring");
     addEvent("Transferred. A new person, with none of the conversation.");
     await wait(run, 1800);
-    await hear(run, "Parts, this is Dana.");
-    await reply(run, ["Hi, I'm an assistant calling on behalf of Chris Smith.", "I'm checking whether you have a rear derailleur hanger for a 2021 Kona Rove."]);
+    await hear(run, "Appointments, this is Dana.");
+    await reply(run, ["Hi, I'm an assistant calling on behalf of Chris Smith.", "I'd like to book an annual check-up, any weekday morning in the next two weeks."]);
   }],
   ["Jump to 7:50", async () => { S.offset += Math.max(0, SOFT_S - 10 - elapsed()); lastSec = -1; addEvent("Clock moved to 7:50 to rehearse the soft limit"); }],
   ["Hang up on it", async (run) => { await wait(run, 300); S.phaseBeforeEnd = S.phase; endCall("far-end-hung-up"); }],
