@@ -5,7 +5,7 @@
  * buffer without the view's offset, so handing it a subarray publishes the
  * start of the file for every frame. A Piper wav opens quietly, so the fault
  * arrives as silence rather than as a stutter, which is far worse to find.
- * Learned in voice-bridge-mcp; the same rule applies here.
+ * Learned in sidetone; the same rule applies here.
  */
 export const RTC_RATE = 48_000;
 export const FRAME_MS = 20;

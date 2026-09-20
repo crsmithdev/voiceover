@@ -4,13 +4,13 @@ Drives the voice bridge's own TTS worker, because spec 13.2 reuses that engine
 instead of installing a second one. So this benchmark needs the bridge present
 at the paths below; it is not self-contained.
 
-Usage: ~/voice-bridge-mcp/.venv/bin/python3 bench/voice-first-audio.py
+Usage: ~/sidetone/.venv/bin/python3 bench/voice-first-audio.py
 """
 import json, os, statistics, subprocess, sys, time, wave
 
-PY_BIN = os.path.expanduser("~/voice-bridge-mcp/.venv/bin/python3")
-WORKER = os.path.expanduser("~/voice-bridge-mcp/speech/tts_worker.py")
-VOICE = os.path.expanduser("~/.voice-bridge/models/en_US-lessac-medium.onnx")
+PY_BIN = os.path.expanduser("~/sidetone/.venv/bin/python3")
+WORKER = os.path.expanduser("~/sidetone/speech/tts_worker.py")
+VOICE = os.path.expanduser("~/.sidetone/models/en_US-lessac-medium.onnx")
 OUT = "/tmp/claude-1001/-home-crsmi-caller/3670f9cb-95b7-45b1-91cf-d18ad2610910/scratchpad/tts.wav"
 
 # The first sentences the models actually produced in the brain benchmark.

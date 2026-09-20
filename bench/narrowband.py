@@ -16,10 +16,10 @@ Usage: python3 bench/narrowband.py    (needs sox and the voice bridge present)
 """
 import difflib, glob, json, os, random, re, statistics, struct, subprocess, wave
 
-V = os.path.expanduser("~/voice-bridge-mcp/.venv")
-SPEECH = os.path.expanduser("~/voice-bridge-mcp/speech")
-VOICE = os.path.expanduser("~/.voice-bridge/models/en_US-lessac-medium.onnx")
-MODELS = os.path.expanduser("~/.voice-bridge/models")
+V = os.path.expanduser("~/sidetone/.venv")
+SPEECH = os.path.expanduser("~/sidetone/speech")
+VOICE = os.path.expanduser("~/.sidetone/models/en_US-lessac-medium.onnx")
+MODELS = os.path.expanduser("~/.sidetone/models")
 OUT = os.environ.get("NARROWBAND_OUT", "/tmp/narrowband-fixtures")
 os.makedirs(OUT, exist_ok=True)
 S = OUT

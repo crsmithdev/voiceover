@@ -15,7 +15,7 @@ import { decodeWav } from "../audio/pcm.ts";
 import { FileChunkedStream } from "./tts.ts";
 import { MODELS, Worker, cudaLibraryPath } from "./worker.ts";
 
-const VENV = process.env.VOICEOVER_KOKORO_VENV ?? join(homedir(), ".voice-bridge", "kokoro-venv");
+const VENV = process.env.VOICEOVER_KOKORO_VENV ?? join(homedir(), ".sidetone", "kokoro-venv");
 const KOKORO_RATE = 24_000;
 
 export class KokoroTTS extends tts.TTS {

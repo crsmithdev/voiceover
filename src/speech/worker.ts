@@ -14,8 +14,8 @@ import { readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-export const BRIDGE = process.env.VOICE_BRIDGE_HOME ?? join(homedir(), "voice-bridge-mcp");
-export const MODELS = process.env.VOICE_BRIDGE_MODELS ?? join(homedir(), ".voice-bridge", "models");
+export const BRIDGE = process.env.SIDETONE_HOME ?? join(homedir(), "sidetone");
+export const MODELS = process.env.SIDETONE_MODELS ?? join(homedir(), ".sidetone", "models");
 
 export function pythonBin(): string {
   return join(BRIDGE, ".venv", "bin", "python3");

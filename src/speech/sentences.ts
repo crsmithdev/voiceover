@@ -9,7 +9,7 @@
  * audio back. This errs toward splitting, and never waits for punctuation
  * that may not arrive.
  *
- * Taken from voice-bridge-mcp src/sentences.ts, where it already runs against
+ * Taken from sidetone src/sentences.ts, where it already runs against
  * a live model. The two products want the same rule, so they keep the same
  * code until one of them needs to differ.
  */

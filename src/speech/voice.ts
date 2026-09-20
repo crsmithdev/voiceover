@@ -8,8 +8,8 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const BRIDGE = process.env.VOICE_BRIDGE_HOME ?? join(homedir(), "voice-bridge-mcp");
-const MODELS = process.env.VOICE_BRIDGE_MODELS ?? join(homedir(), ".voice-bridge", "models");
+const BRIDGE = process.env.SIDETONE_HOME ?? join(homedir(), "sidetone");
+const MODELS = process.env.SIDETONE_MODELS ?? join(homedir(), ".sidetone", "models");
 const VOICE = process.env.VOICEOVER_VOICE ?? "en_US-lessac-medium";
 
 type Worker = Bun.Subprocess<"pipe", "pipe", "inherit">;
