@@ -17,7 +17,7 @@ import { type APIConnectOptions, tts } from "@livekit/agents";
 import { decodeWav, frameAt } from "../audio/pcm.ts";
 import { MODELS, Worker } from "./worker.ts";
 
-const VOICE = process.env.CALLER_VOICE ?? "en_US-lessac-medium";
+const VOICE = process.env.VOICEOVER_VOICE ?? "en_US-lessac-medium";
 /** Piper's own rate for this voice. `warm` checks it rather than trusting it. */
 const PIPER_RATE = 22_050;
 const FRAME_MS = 20;

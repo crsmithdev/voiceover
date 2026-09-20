@@ -31,7 +31,7 @@ export function normalise(input: string): string | null {
 }
 
 export function ownedNumbers(env: Record<string, string | undefined> = process.env): string[] {
-  const raw = env.CALLER_OWNED_NUMBERS ?? "";
+  const raw = env.VOICEOVER_OWNED_NUMBERS ?? "";
   return raw
     .split(",")
     .map((entry) => normalise(entry.trim()))

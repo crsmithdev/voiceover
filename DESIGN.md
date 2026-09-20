@@ -1,5 +1,5 @@
 ---
-name: Caller
+name: Voiceover
 description: A local operating surface for one person to write a rundown, watch what the caller is permitted to say during a live telephone call, and read the as-run log.
 colors:
   ground: "#f1f3f7"
@@ -229,6 +229,13 @@ withheld or live, amber is a limit or a deferral. Never use them as decoration.
 
 **The One Action Rule.** Accent blue marks the action available right now, and
 only one control on the screen carries it.
+
+**The Mark.** The Voiceover mark is six vertical pills on an accent-blue tile
+(rx 23 on a 104 grid): two quiet pills, one on-air red pill at full height, then
+three that decay. It reads as a line that is open, the far end that picks up,
+and the ring down. The figure is paper white on the tile; on paper it is rail
+navy. It sits at 22px in the rail beside the wordmark and is the favicon. Never
+recolour the strike.
 
 **The Dark Rail Rule.** The rail is the only dark surface. No other panel takes
 the rail colours, and rail text colours never appear on light.

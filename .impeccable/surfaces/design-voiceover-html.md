@@ -1,11 +1,11 @@
 ---
 version: 1
-slug: "design-caller-html"
-primary_target: "design/caller.html"
+slug: "design-voiceover-html"
+primary_target: "design/voiceover.html"
 related_targets: []
 ---
 
-# Surface: Caller local UI prototype (design/caller.html)
+# Surface: Voiceover local UI prototype (design/voiceover.html)
 
 Mode: Operate. One user, watches every real call live, ready to hang up.
 Screens: compose (rundown + preflight), on air (live call), as-run log (report), log archive, rehearsal.

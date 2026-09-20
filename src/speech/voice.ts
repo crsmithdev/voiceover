@@ -10,7 +10,7 @@ import { join } from "node:path";
 
 const BRIDGE = process.env.VOICE_BRIDGE_HOME ?? join(homedir(), "voice-bridge-mcp");
 const MODELS = process.env.VOICE_BRIDGE_MODELS ?? join(homedir(), ".voice-bridge", "models");
-const VOICE = process.env.CALLER_VOICE ?? "en_US-lessac-medium";
+const VOICE = process.env.VOICEOVER_VOICE ?? "en_US-lessac-medium";
 
 type Worker = Bun.Subprocess<"pipe", "pipe", "inherit">;
 

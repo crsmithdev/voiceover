@@ -785,7 +785,7 @@ composed, shown back, and passed to the call. Nothing about a brief outlives the
 call it was written for.
 
 18.2.1 **Decided, and replaced on 17 September 2026.** The mockup is one
-clickable file, `design/caller.html`, in the Control Room direction: the brief
+clickable file, `design/voiceover.html`, in the Control Room direction: the brief
 is a rundown that locks on air, the call is a programme feed with each reply
 timed, and the report is an as-run log. `PRODUCT.md` holds the product truth
 and `DESIGN.md` the visual system. The earlier canvas mockups are deleted.
@@ -804,7 +804,7 @@ FCC declaratory ruling, the TCPA text it reads, and the California recording
 statute are to be read directly and written up, so the rule rests on a citation
 rather than on a summary of a vendor's marketing page. That write-up is not legal
 advice and does not pretend to be.
-18.6 **Decided.** A report stays in `~/.caller/reports`, as JSON beside a
+18.6 **Decided.** A report stays in `~/.voiceover/reports`, as JSON beside a
 readable summary, and the user interface lists them. A report older than 30 days
 is deleted. That gives 10.9 a rule rather than an intention: the other party's
 words do not accumulate on a desktop forever.
@@ -839,10 +839,10 @@ assistant that talks to Chris and another for the one that talks for him keeps i
 clear whose voice is whose.
 
 18.12.3 **Built on 17 September 2026.** The caller speaks with Kokoro.
-`CALLER_KOKORO_VOICE` names the voice and `am_michael` is the default until
+`VOICEOVER_KOKORO_VOICE` names the voice and `am_michael` is the default until
 Chris picks by ear; `bun scripts/voices.ts` renders each candidate twice, as it
 comes and through the telephone band of 12.5, because a voice that is pleasant
-at 24 kHz can lose what makes it pleasant at 8. `CALLER_TTS=piper` returns to
+at 24 kHz can lose what makes it pleasant at 8. `VOICEOVER_TTS=piper` returns to
 the bridge's voice. Kokoro made that sentence in 190 to 220 milliseconds.
 18.14 **Decided. The caller runs as a framework worker.** 8.5 is the finding: a
 standalone session never loads the local end-of-turn model and commits turns on a
@@ -887,12 +887,12 @@ same feed, lamps and report as a rehearsal, because both come from the same
 bridge. HANG UP is a command to the job. Nothing about this path has been tried
 on a telephone yet.
 
-18.15.5 **The log reads what is on disk.** `~/.caller/reports` and
-`~/.caller/rehearsals`, newest first. A report older than 30 days is deleted
+18.15.5 **The log reads what is on disk.** `~/.voiceover/reports` and
+`~/.voiceover/rehearsals`, newest first. A report older than 30 days is deleted
 when the list loads, which gives 18.6 its mechanism rather than an intention.
 
 18.15 **Decided. Layer three exists, and the user interface drives it.**
-`bun scripts/ui.ts` serves `design/caller.html` on port 3002, and its Rehearsal
+`bun scripts/ui.ts` serves `design/voiceover.html` on port 3002, and its Rehearsal
 view runs the real caller of `src/call/session.ts` against a test receiver in a
 local room. The receiver has its own transcriber, a Kokoro voice so it never
 sounds like the caller, and Gemini 2.5 Flash (4.9). It plays one of the eight
@@ -900,7 +900,7 @@ personalities kept by 18.8, or a voicemail machine, or a menu system (12.9).
 Chris steers it with challenges (a machine question, a fact the brief lacks, a
 card number, talking over, a cough, silence, hold music, a transfer, the soft
 limit, a hang up) or types its words himself, and listens in from the browser.
-Reports go to `~/.caller/rehearsals`, never beside real calls. On air and the
+Reports go to `~/.voiceover/rehearsals`, never beside real calls. On air and the
 log in the page are still simulated.
 
 18.15.1 The local LiveKit server runs in Docker on port 7890, not 7880,
@@ -923,7 +923,7 @@ interface**, at Chris's request on 17 September 2026. That covers the caller's
 brief, its Section 9 rules, its manner and its soft-limit close; the receiver's
 frame, its tool descriptions, each personality and greeting; and the words each
 challenge says. `src/prompts.ts` holds the defaults. An edit is saved to
-`~/.caller/prompts.json` and takes effect at the next rehearsal or call, never
+`~/.voiceover/prompts.json` and takes effect at the next rehearsal or call, never
 inside one. The disclosure rules of 10.1 and 10.2 are shown and never edited,
 because 10.3 forbids a setting that turns them off, and they are always the last
 thing the caller reads, so no edit above them can outrank them.

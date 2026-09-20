@@ -2,7 +2,7 @@
  * Creates the LiveKit outbound trunk that dials through Telnyx (spec 13.5).
  *
  * Idempotent: it lists the trunks first and does nothing if one already points
- * at the same number. Reads ~/caller/.env, which is not in the repository.
+ * at the same number. Reads ~/voiceover/.env, which is not in the repository.
  *
  * The Telnyx side must already exist: an outbound voice profile, an FQDN
  * connection holding these same digest credentials, an FQDN record pointing at

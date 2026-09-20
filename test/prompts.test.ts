@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-process.env.CALLER_PROMPTS = join(tmpdir(), `caller-prompts-${Date.now()}.json`);
+process.env.VOICEOVER_PROMPTS = join(tmpdir(), `voiceover-prompts-${Date.now()}.json`);
 const { instructionsFor } = await import("../src/call/brief.ts");
 const { _clearOverrides, listPrompts, prompt, resetPrompt, setPrompt } = await import("../src/prompts.ts");
 

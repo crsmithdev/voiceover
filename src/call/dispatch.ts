@@ -64,7 +64,7 @@ export async function ensureWorker(deployment: Deployment, say: (text: string) =
             sawRegistration = true;
             resolve();
           }
-          if (process.env.CALLER_WORKER_LOG !== "off") console.log(`worker: ${line.trim().slice(0, 400)}`);
+          if (process.env.VOICEOVER_WORKER_LOG !== "off") console.log(`worker: ${line.trim().slice(0, 400)}`);
         }
       }
     };

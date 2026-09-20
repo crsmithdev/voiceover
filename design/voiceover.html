@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Caller</title>
+<title>Voiceover</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox=%220 0 104 104%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Crect width=%22104%22 height=%22104%22 rx=%2223%22 fill=%22%233b5bdb%22/%3E%3Crect x=%229.5%22 y=%2245.2%22 width=%2210%22 height=%2213.6%22 rx=%225%22 fill=%22%23eef1f5%22/%3E%3Crect x=%2224.5%22 y=%2245.2%22 width=%2210%22 height=%2213.6%22 rx=%225%22 fill=%22%23eef1f5%22/%3E%3Crect x=%2239.5%22 y=%2212%22 width=%2210%22 height=%2280%22 rx=%225%22 fill=%22%23c22c1f%22/%3E%3Crect x=%2254.5%22 y=%2226.5%22 width=%2210%22 height=%2251%22 rx=%225%22 fill=%22%23eef1f5%22/%3E%3Crect x=%2269.5%22 y=%2235.7%22 width=%2210%22 height=%2232.5%22 rx=%225%22 fill=%22%23eef1f5%22/%3E%3Crect x=%2284.5%22 y=%2241.6%22 width=%2210%22 height=%2220.7%22 rx=%225%22 fill=%22%23eef1f5%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Red+Hat+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -83,11 +84,15 @@ h2 { margin: 0; }
   color: var(--rail-text);
 }
 .mark {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   padding: 0 10px;
   font-size: 18px;
   font-weight: 600;
   letter-spacing: .02em;
 }
+.mark-tile { width: 22px; height: 22px; border-radius: 5px; flex: none; }
 .modes { display: flex; flex-direction: column; gap: 2px; }
 .modekey {
   text-align: left;
@@ -773,7 +778,7 @@ textarea.field { line-height: 1.5; overflow: hidden; }
 <body>
 
 <header class="gallery">
-  <div class="mark">Caller</div>
+  <div class="mark"><svg class="mark-tile" viewBox="0 0 104 104" aria-hidden="true"><rect width="104" height="104" rx="23" fill="#3b5bdb"/><rect x="9.5" y="45.2" width="10" height="13.6" rx="5" fill="#eef1f5"/><rect x="24.5" y="45.2" width="10" height="13.6" rx="5" fill="#eef1f5"/><rect x="39.5" y="12" width="10" height="80" rx="5" fill="#c22c1f"/><rect x="54.5" y="26.5" width="10" height="51" rx="5" fill="#eef1f5"/><rect x="69.5" y="35.7" width="10" height="32.5" rx="5" fill="#eef1f5"/><rect x="84.5" y="41.6" width="10" height="20.7" rx="5" fill="#eef1f5"/></svg><span>Voiceover</span></div>
   <nav class="modes" aria-label="Mode">
     <button class="modekey" data-view="air" aria-pressed="true">On air</button>
     <button class="modekey" data-view="rehearsal" aria-pressed="false">Rehearsal</button>
@@ -853,7 +858,7 @@ textarea.field { line-height: 1.5; overflow: hidden; }
     <div class="archive-list">
       <div class="archive-head">
         <h2>As-run log</h2>
-        <p id="logNote">Sample entries. The real list reads ~/.caller/reports; each report is deleted after 30 days.</p>
+        <p id="logNote">Sample entries. The real list reads ~/.voiceover/reports; each report is deleted after 30 days.</p>
       </div>
       <table>
         <thead><tr>
@@ -1902,8 +1907,8 @@ function fromReport(r) {
 function renderLog() {
   const fmt = (d) => d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   $("logNote").textContent = logSource === "disk"
-    ? `${LOG.length} reports from ~/.caller/reports and ~/.caller/rehearsals. A report older than 30 days is deleted when this list loads (18.6).`
-    : "Sample entries. The real list reads ~/.caller/reports; each report is deleted after 30 days.";
+    ? `${LOG.length} reports from ~/.voiceover/reports and ~/.voiceover/rehearsals. A report older than 30 days is deleted when this list loads (18.6).`
+    : "Sample entries. The real list reads ~/.voiceover/reports; each report is deleted after 30 days.";
   $("logRows").innerHTML = LOG.map((r, i) => `
     <tr tabindex="0" aria-selected="${i === selected}" data-i="${i}">
       <td class="when">${fmt(r.endedAt)}</td>
@@ -1922,7 +1927,7 @@ function renderLog() {
   renderAsRun(box, LOG[selected]);
   box.querySelector(".kept").after(
     el("p", "hint-dark", logSource === "disk"
-      ? `Read from ${LOG[selected].place === "Rehearsal" ? "~/.caller/rehearsals" : "~/.caller/reports"}${LOG[selected].file ? `, ${LOG[selected].file}` : ""}.`
+      ? `Read from ${LOG[selected].place === "Rehearsal" ? "~/.voiceover/rehearsals" : "~/.voiceover/reports"}${LOG[selected].file ? `, ${LOG[selected].file}` : ""}.`
       : "Sample report. The names, numbers and timings are synthetic."),
   );
   $("logDetail").replaceChildren(box);

@@ -38,7 +38,7 @@ export function withinRate(
 }
 
 export function historyPath(): string {
-  return process.env.CALLER_HISTORY ?? join(homedir(), ".caller", "dialled.json");
+  return process.env.VOICEOVER_HISTORY ?? join(homedir(), ".voiceover", "dialled.json");
 }
 
 export async function readHistory(path = historyPath()): Promise<Dialled[]> {

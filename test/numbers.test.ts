@@ -54,7 +54,7 @@ describe("gate", () => {
 
 describe("ownedNumbers", () => {
   test("reads a comma separated list and drops what it cannot parse", () => {
-    expect(ownedNumbers({ CALLER_OWNED_NUMBERS: "415-555-0100, banana, +14155550101" })).toEqual([
+    expect(ownedNumbers({ VOICEOVER_OWNED_NUMBERS: "415-555-0100, banana, +14155550101" })).toEqual([
       "+14155550100",
       "+14155550101",
     ]);

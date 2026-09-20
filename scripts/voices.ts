@@ -20,7 +20,7 @@ const LINE =
 
 const voices = process.argv.slice(2).filter((a) => !a.startsWith("-"));
 const chosen = voices.length ? voices : SHORTLIST;
-const out = join(tmpdir(), "caller-voices");
+const out = join(tmpdir(), "voiceover-voices");
 await mkdir(out, { recursive: true });
 
 const engine = new KokoroTTS(chosen[0] as string);
@@ -56,5 +56,5 @@ for (const voice of chosen) {
 }
 
 await engine.close();
-console.log(`\nPlay them from ${out}. Set the one you want as CALLER_KOKORO_VOICE in .env.`);
+console.log(`\nPlay them from ${out}. Set the one you want as VOICEOVER_KOKORO_VOICE in .env.`);
 process.exit(0);

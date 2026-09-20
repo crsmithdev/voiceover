@@ -40,7 +40,7 @@ const brief: Brief = {
 };
 
 const dial = process.argv.includes("--dial");
-const target = normalise(process.argv.find((arg) => /^\+?\d[\d\s()-]+$/.test(arg)) ?? need("CALLER_TEST_NUMBER"));
+const target = normalise(process.argv.find((arg) => /^\+?\d[\d\s()-]+$/.test(arg)) ?? need("VOICEOVER_TEST_NUMBER"));
 if (!target) throw new Error("the target is not a North American number");
 
 const verdict = gate({ number: target, lineType: "mobile" }, ownedNumbers());

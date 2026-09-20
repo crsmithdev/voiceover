@@ -28,12 +28,12 @@ import { KokoroTTS } from "../speech/kokoro.ts";
 import { PiperTTS } from "../speech/tts.ts";
 import { constants } from "./state.ts";
 
-const BRAIN = process.env.CALLER_BRAIN ?? "anthropic/claude-haiku-4.5";
+const BRAIN = process.env.VOICEOVER_BRAIN ?? "anthropic/claude-haiku-4.5";
 /** One of Kokoro's 54 voices. Chris picks it by ear; `scripts/voices.ts` renders them. */
-const CALLER_VOICE = process.env.CALLER_KOKORO_VOICE ?? "am_michael";
+const VOICEOVER_VOICE = process.env.VOICEOVER_KOKORO_VOICE ?? "am_michael";
 /** The framework's own name for the end-of-turn inference method. */
 const EOT_METHOD = "lk_eot_audio";
-const ROUTE = process.env.CALLER_BRAIN_BASE_URL ?? "https://openrouter.ai/api/v1";
+const ROUTE = process.env.VOICEOVER_BRAIN_BASE_URL ?? "https://openrouter.ai/api/v1";
 
 export interface Engines {
   session: AgentSession;
@@ -54,8 +54,8 @@ export async function buildSession(brief: Brief, hooks: SessionHooks = {}): Prom
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set; put it in .env");
 
   // 18.12: Kokoro on the card, and never the voice the bridge speaks with
-  // (18.12.2). `CALLER_TTS=piper` falls back to the bridge's own voice.
-  const voice = process.env.CALLER_TTS === "piper" ? new PiperTTS() : new KokoroTTS(CALLER_VOICE);
+  // (18.12.2). `VOICEOVER_TTS=piper` falls back to the bridge's own voice.
+  const voice = process.env.VOICEOVER_TTS === "piper" ? new PiperTTS() : new KokoroTTS(VOICEOVER_VOICE);
   const ears = new WhisperSTT();
   // Loading costs seconds each. Spec 3.1 allows that before a call, never inside one.
   await Promise.all([voice.warm(), ears.warm()]);

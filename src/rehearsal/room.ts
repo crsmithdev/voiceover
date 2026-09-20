@@ -37,7 +37,7 @@ import { prompt } from "../prompts.ts";
 import { type Persona, TRANSFER, persona as findPersona } from "./personas.ts";
 
 /** Not 7880: the voice bridge's own server holds that port with its own keys (18.10). */
-export const LIVEKIT_URL = process.env.CALLER_REHEARSAL_LIVEKIT ?? "ws://127.0.0.1:7890";
+export const LIVEKIT_URL = process.env.VOICEOVER_REHEARSAL_LIVEKIT ?? "ws://127.0.0.1:7890";
 const LIVEKIT_CONFIG = [
   "port: 7890",
   'bind_addresses: ["127.0.0.1"]',
@@ -53,9 +53,9 @@ const LIVEKIT_CONFIG = [
 /** The dev server's fixed credentials. Nothing outside this machine can reach it. */
 const DEV_KEY = "devkey";
 const DEV_SECRET = "secret";
-const RECEIVER_BRAIN = process.env.CALLER_RECEIVER_BRAIN ?? "google/gemini-2.5-flash";
-const ROUTE = process.env.CALLER_BRAIN_BASE_URL ?? "https://openrouter.ai/api/v1";
-export const REHEARSAL_DIR = process.env.CALLER_REHEARSAL_DIR ?? join(homedir(), ".caller", "rehearsals");
+const RECEIVER_BRAIN = process.env.VOICEOVER_RECEIVER_BRAIN ?? "google/gemini-2.5-flash";
+const ROUTE = process.env.VOICEOVER_BRAIN_BASE_URL ?? "https://openrouter.ai/api/v1";
+export const REHEARSAL_DIR = process.env.VOICEOVER_REHEARSAL_DIR ?? join(homedir(), ".voiceover", "rehearsals");
 
 export type Tone = "amber" | "green" | "red";
 export type UiEvent =

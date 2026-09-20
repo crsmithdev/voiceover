@@ -14,7 +14,7 @@ import { type AudioBuffer, asLanguageCode, mergeFrames, stt } from "@livekit/age
 import { encodeWav } from "../audio/pcm.ts";
 import { MODELS, Worker, cudaLibraryPath } from "./worker.ts";
 
-const MODEL = process.env.CALLER_STT_MODEL ?? "small.en";
+const MODEL = process.env.VOICEOVER_STT_MODEL ?? "small.en";
 
 export class WhisperSTT extends stt.STT {
   label = "caller.WhisperSTT";

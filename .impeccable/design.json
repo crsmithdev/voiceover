@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "generatedAt": "2026-09-17T16:07:12+00:00",
-  "title": "Design System: Caller",
+  "title": "Design System: Voiceover",
   "extensions": {
     "colorMeta": {
       "console": {
@@ -496,7 +496,7 @@
       },
       "wordmark": {
         "displayName": "Wordmark",
-        "purpose": "The Caller mark in the gallery strip."
+        "purpose": "The Voiceover mark in the gallery strip."
       },
       "key": {
         "displayName": "Key",

@@ -1,6 +1,6 @@
 /**
  * Where a report lives. Provisional: spec 18.6 has not decided this yet.
- * One JSON file per call under ~/.caller/reports, plus the summary beside it.
+ * One JSON file per call under ~/.voiceover/reports, plus the summary beside it.
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { type Report, summarise } from "./report.ts";
 
 export function reportDir(): string {
-  return process.env.CALLER_REPORT_DIR ?? join(homedir(), ".caller", "reports");
+  return process.env.VOICEOVER_REPORT_DIR ?? join(homedir(), ".voiceover", "reports");
 }
 
 export async function writeReport(report: Report, dir = reportDir()): Promise<string> {

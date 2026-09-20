@@ -40,7 +40,7 @@ const need = (name: string): string => {
 };
 
 const dial = process.argv.includes("--dial");
-const target = normalise(process.argv.find((arg) => /^\+?\d[\d\s()-]+$/.test(arg)) ?? need("CALLER_TEST_NUMBER"));
+const target = normalise(process.argv.find((arg) => /^\+?\d[\d\s()-]+$/.test(arg)) ?? need("VOICEOVER_TEST_NUMBER"));
 if (!target) throw new Error("the target is not a North American number");
 
 // 10.10. The number is one Chris owns, so it passes as "owned" and not as a
@@ -61,7 +61,7 @@ if (!rate.allowed) process.exit(1);
 
 const voice = new Voice();
 await voice.start();
-const wavPath = join(tmpdir(), `caller-test-${now}.wav`);
+const wavPath = join(tmpdir(), `voiceover-test-${now}.wav`);
 await voice.say(LINE, wavPath);
 voice.stop();
 const wav = decodeWav(new Uint8Array(await readFile(wavPath)));
@@ -78,7 +78,7 @@ const url = need("LIVEKIT_URL");
 const apiKey = need("LIVEKIT_API_KEY");
 const apiSecret = need("LIVEKIT_API_SECRET");
 const trunkId = need("LIVEKIT_TRUNK_ID");
-const roomName = `caller-test-${now}`;
+const roomName = `voiceover-test-${now}`;
 
 const token = new AccessToken(apiKey, apiSecret, { identity: "caller", ttl: "10m" });
 token.addGrant({ roomJoin: true, room: roomName, canPublish: true, canSubscribe: true });

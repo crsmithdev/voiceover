@@ -32,8 +32,8 @@ import {
   listenToken,
 } from "../src/rehearsal/room.ts";
 
-const PORT = Number(process.env.CALLER_UI_PORT ?? 3002);
-const PAGE = join(import.meta.dir, "..", "design", "caller.html");
+const PORT = Number(process.env.VOICEOVER_UI_PORT ?? 3002);
+const PAGE = join(import.meta.dir, "..", "design", "voiceover.html");
 const EVENTS_URL = `http://127.0.0.1:${PORT}/api/internal/events`;
 const RING_SECONDS = 30;
 
@@ -111,7 +111,7 @@ Bun.serve({
     const url = new URL(req.url);
     const route = `${req.method} ${url.pathname}`;
 
-    if (route === "GET /" || route === "GET /caller.html") {
+    if (route === "GET /" || route === "GET /voiceover.html") {
       return new Response(Bun.file(PAGE), { headers: { "content-type": "text/html; charset=utf-8" } });
     }
     if (route === "GET /api/health") {

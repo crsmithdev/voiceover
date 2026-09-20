@@ -13,7 +13,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { PERSONAS, TRANSFER } from "./rehearsal/personas.ts";
 
-export const PROMPTS_FILE = process.env.CALLER_PROMPTS ?? join(homedir(), ".caller", "prompts.json");
+export const PROMPTS_FILE = process.env.VOICEOVER_PROMPTS ?? join(homedir(), ".voiceover", "prompts.json");
 
 export interface PromptDef {
   id: string;
