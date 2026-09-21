@@ -237,6 +237,13 @@ and the ring down. The figure is paper white on the tile; on paper it is rail
 navy. It sits at 22px in the rail beside the wordmark and is the favicon. Never
 recolour the strike.
 
+**The Wordmark.** The word is `voiceover`, lowercase, in Barlow 600 with
+letter-spacing -0.02em. Beside the tile it is 0.9 of the tile's height, with
+a gap of 0.3, and its x-height band is centred on the tile. The word is ink
+on paper and paper on the rail; it never takes the accent or the strike.
+`design/lockup-light.svg` and `design/lockup-dark.svg` carry it as outlines
+for places that cannot load the font.
+
 **The Dark Rail Rule.** The rail is the only dark surface. No other panel takes
 the rail colours, and rail text colours never appear on light.
 

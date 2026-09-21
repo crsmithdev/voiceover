@@ -1,6 +1,7 @@
-<img src="design/mark.svg" width="64" alt="">
-
-# Voiceover
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="design/lockup-dark.svg">
+  <img src="design/lockup-light.svg" alt="Voiceover" width="264" height="52">
+</picture>
 
 Voiceover makes a telephone call for you. You write a rundown: one goal, the
 facts it may state, the number. It dials, holds an open conversation toward
@@ -107,6 +108,7 @@ Reports, rehearsal logs, edited prompts and the dial history live under
 | `docs/spec.md` | The product specification: the rules, the latency model, the measurements, the open points |
 | `DESIGN.md` | The design system for the console |
 | `design/voiceover.html` | The console, one self-contained page |
+| `design/mark.svg`, `design/lockup-*.svg` | The mark, and the lockup with the word as outlines |
 | `src/call` | The rundown, the gate, the rate limit, the state machine, the report |
 | `src/rehearsal` | The test receivers and the local room |
 | `src/speech` | The transcriber and the voices, as framework adapters |
