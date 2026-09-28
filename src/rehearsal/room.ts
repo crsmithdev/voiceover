@@ -11,28 +11,16 @@
  * What it cannot prove is what 12.8 says: both sides share a clock and skip the
  * network, so the carrier delay, the codec and the echo path stay untested.
  */
-import { AudioFrame, ParticipantKind, Room, RoomEvent } from "@livekit/rtc-node";
-import {
-  Agent,
-  AgentSession,
-  initializeLogger,
-  llm,
-  stt as sttNs,
-  tokenize,
-  tts as ttsNs,
-  voice as voiceNs,
-} from "@livekit/agents";
-import * as openai from "@livekit/agents-plugin-openai";
-import * as silero from "@livekit/agents-plugin-silero";
+import { AudioFrame, ParticipantKind, Room } from "@livekit/rtc-node";
+import { Agent, AgentSession, initializeLogger, llm, voice as voiceNs } from "@livekit/agents";
 import { AccessToken } from "livekit-server-sdk";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import type { Brief } from "../call/brief.ts";
 import { type Deployment, dispatchCall, ensureWorker, sendCommand } from "../call/dispatch.ts";
 import type { Report } from "../call/report.ts";
+import { rehearsalDir } from "../call/reports.ts";
+import { type Built, buildEngines } from "../call/session.ts";
 import type { AnsweredBy, EndReason, Phase } from "../call/state.ts";
 import { KokoroTTS } from "../speech/kokoro.ts";
-import { WhisperSTT } from "../speech/stt.ts";
 import { prompt } from "../prompts.ts";
 import { type Persona, TRANSFER, persona as findPersona } from "./personas.ts";
 
@@ -54,8 +42,6 @@ const LIVEKIT_CONFIG = [
 const DEV_KEY = "devkey";
 const DEV_SECRET = "secret";
 const RECEIVER_BRAIN = process.env.VOICEOVER_RECEIVER_BRAIN ?? "google/gemini-2.5-flash";
-const ROUTE = process.env.VOICEOVER_BRAIN_BASE_URL ?? "https://openrouter.ai/api/v1";
-export const REHEARSAL_DIR = process.env.VOICEOVER_REHEARSAL_DIR ?? join(homedir(), ".voiceover", "rehearsals");
 
 export type Tone = "amber" | "green" | "red";
 export type UiEvent =
@@ -180,15 +166,9 @@ function beep(): Float32Array {
 
 /* ---------- the rehearsal ---------- */
 
-interface Receiver {
-  session: AgentSession;
-  voice: KokoroTTS;
-  ears: WhisperSTT;
-}
-
 export class Rehearsal {
   readonly roomName = `rehearsal-${Date.now()}`;
-  private receiver: Receiver | null = null;
+  private receiver: Built | null = null;
   private receiverRoom = new Room();
   private readonly deployment: Deployment = { url: LIVEKIT_URL, apiKey: DEV_KEY, apiSecret: DEV_SECRET };
   private ended = false;
@@ -272,7 +252,7 @@ export class Rehearsal {
       brief: this.brief,
       number: `rehearsal: ${this.persona.name}`,
       events: this.eventsUrl,
-      reportDir: REHEARSAL_DIR,
+      reportDir: rehearsalDir(),
       farEnd: "receiver",
       answered: this.persona.answers,
     });
@@ -280,20 +260,15 @@ export class Rehearsal {
     // The line opens when the job says it is on it; the receiver then speaks.
   }
 
-  private async buildReceiver(): Promise<Receiver> {
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set; put it in .env");
-    const voice = new KokoroTTS(this.persona.voice);
-    const ears = new WhisperSTT();
-    await Promise.all([voice.warm(), ears.warm()]);
-    const vad = await silero.VAD.load();
-    const session = new AgentSession({
-      vad,
-      stt: new sttNs.StreamAdapter(ears, vad),
-      tts: new ttsNs.StreamAdapter(voice, new tokenize.basic.SentenceTokenizer()),
-      llm: new openai.LLM({ model: RECEIVER_BRAIN, baseURL: ROUTE, apiKey }),
-    });
-    return { session, voice, ears };
+  /**
+   * The receiver, assembled by the same code as the caller (`buildEngines`).
+   *
+   * `turnTaking: false` is the one difference and it is not a choice: the
+   * receiver is not a job, so spec 8.5 applies and no executor exists for the
+   * local end-of-turn model. The reason is written down in `BuildOptions`.
+   */
+  private async buildReceiver(): Promise<Built> {
+    return buildEngines({ voiceName: this.persona.voice, brain: RECEIVER_BRAIN, turnTaking: false });
   }
 
   private receiverAgent(p: Persona): Agent {
@@ -397,7 +372,10 @@ export class Rehearsal {
           announce("transferred to a new person, who heard none of the conversation");
           await line("", holdMusic(2.5));
           this.persona = TRANSFER;
-          r.voice.voice = TRANSFER.voice;
+          // Only Kokoro can change voice inside a session: Piper is one voice
+          // per model file. The receiver is always Kokoro, but `Built.voice` is
+          // the union both callers share, so narrow rather than assert.
+          if (r.voice instanceof KokoroTTS) r.voice.voice = TRANSFER.voice;
           s.updateAgent(this.receiverAgent(TRANSFER));
           await line(prompt(`persona.${TRANSFER.id}.greeting`));
           break;

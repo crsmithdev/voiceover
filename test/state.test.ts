@@ -22,6 +22,9 @@ const k: Constants = {
   falseInterruptionMs: 2000,
   softLimitMs: 10_000,
   hardLimitMs: 20_000,
+  // Past the hard limit on purpose, so a case about the limits is never also a
+  // case about the watchdog. The watchdog's own cases set their own value.
+  deadAirMs: 60_000,
 };
 
 const kinds = (actions: Action[]) => actions.map((a) => a.kind);
@@ -331,5 +334,91 @@ describe("10.4 the disclosure question", () => {
     const { state } = run(upTo, k);
     expect(state.owedDisclosure).toBe(false);
     expect(state.phase).toBe("listening");
+  });
+});
+
+/**
+ * 16.4.1 the dead-air watchdog. A sleeping host, a dead speech worker and a hung
+ * brain all look the same from in here: nothing at all. The carrier's own cap is
+ * a backstop, and twelve minutes of silence on a stranger's telephone is a
+ * failure, so the call ends from this side with a report.
+ */
+describe("the dead-air watchdog", () => {
+  /** Short enough to fire inside a readable case, well under the soft limit. */
+  const w: Constants = { ...k, deadAirMs: 5_000 };
+
+  test("silence past deadAirMs ends the call and still writes a report", () => {
+    const { state, actions } = run([...answered, { kind: "tick", at: 8_100 }], w);
+    expect(state.phase).toBe("ended");
+    expect(state.endReason).toBe("dead-air");
+    expect(kinds(actions)).toContain("endCall");
+    expect(kinds(actions)).toContain("writeReport");
+  });
+
+  test("a tick is not a signal, so ticking cannot keep a dead call alive", () => {
+    const ticks: Event[] = [];
+    for (let at = 3_100; at <= 8_100; at += 250) ticks.push({ kind: "tick", at });
+    const { state } = run([...answered, ...ticks], w);
+    expect(state.endReason).toBe("dead-air");
+  });
+
+  test("anything heard or said resets it", () => {
+    const { state } = run(
+      [
+        ...answered,
+        { kind: "tick", at: 6_000 },
+        { kind: "transcript", at: 7_000, words: 4 },
+        { kind: "tick", at: 11_000 },
+      ],
+      w,
+    );
+    expect(state.phase).not.toBe("ended");
+    expect(state.endReason).toBeNull();
+  });
+
+  test("it does not fire while the line is still ringing", () => {
+    const { state } = run([{ kind: "dial", at: 0 }, { kind: "tick", at: 9_000 }], w);
+    expect(state.phase).toBe("ringing");
+    expect(state.endReason).toBeNull();
+  });
+
+  test("the hard limit is the reason when both are due, because 11.3 is the harder promise", () => {
+    const late: Constants = { ...w, deadAirMs: 1_000, hardLimitMs: 4_000 };
+    const { state } = run([...answered, { kind: "tick", at: 9_000 }], late);
+    expect(state.endReason).toBe("hard-limit");
+  });
+
+  test("a sentence in flight is cut when the watchdog fires", () => {
+    const speaking: Event[] = [
+      { kind: "dial", at: 0 },
+      { kind: "answered", at: 1_000, by: "person" },
+      { kind: "sentenceReady", at: 1_500, text: "One moment." },
+    ];
+    const { state, actions } = run([...speaking, { kind: "tick", at: 7_000 }], w);
+    expect(state.phase).toBe("ended");
+    expect(kinds(actions)).toContain("stopPlayback");
+  });
+});
+
+/**
+ * 16.4.1 against the rehearsal's fictional clock. The `soft` challenge moves the
+ * clock most of the way to the soft limit rather than waiting eight minutes, and
+ * the whole jump would otherwise read as dead air and end the call first.
+ */
+describe("a moved clock is not silence", () => {
+  const w: Constants = { ...k, deadAirMs: 5_000, softLimitMs: 30_000, hardLimitMs: 60_000 };
+
+  test("without the jump event the watchdog wins, which is the regression", () => {
+    const { state } = run([...answered, { kind: "tick", at: 29_000 }], w);
+    expect(state.endReason).toBe("dead-air");
+  });
+
+  test("with it the call survives to the limit the rehearsal was reaching for", () => {
+    const { state, actions } = run(
+      [...answered, { kind: "clockJumped", at: 28_000 }, { kind: "tick", at: 28_250 }, { kind: "tick", at: 30_100 }],
+      w,
+    );
+    expect(state.endReason).toBeNull();
+    expect(kinds(actions)).toContain("beginClose");
   });
 });

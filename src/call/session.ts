@@ -49,39 +49,93 @@ export interface SessionHooks {
   onDeferred?(detail: string): void;
 }
 
-export async function buildSession(brief: Brief, hooks: SessionHooks = {}): Promise<Engines> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set; put it in .env");
+/**
+ * Everything that differs between a real call and a test, and nothing else.
+ *
+ * Every field is optional, so a call passes none of them and gets what it
+ * always got. A test passes fakes and needs no GPU, no Python and no key. Named
+ * after sidetone's `Parts` in `src/bridge.ts`, which exists for the same reason:
+ * the assembly has one copy, and only the pieces under it are swapped.
+ */
+export interface Parts {
+  voice?: KokoroTTS | PiperTTS;
+  ears?: WhisperSTT;
+  brain?: llm.LLM;
+  vad?: AgentSessionOptions["vad"];
+  turnDetection?: NonNullable<AgentSessionOptions["turnHandling"]>["turnDetection"];
+}
 
+/** What the caller and the receiver assemble identically. The `Agent` is not part of it. */
+export interface Built {
+  session: AgentSession;
+  voice: KokoroTTS | PiperTTS;
+  ears: WhisperSTT;
+  close(): Promise<void>;
+}
+
+export interface BuildOptions {
+  /** One of Kokoro's 54 voices, or unset for the caller's own. */
+  voiceName?: string;
+  /** The brain to route to, or unset for the caller's own (4.6). */
+  brain?: string;
+  /**
+   * Whether this side gets 8.4's local model and 17.3's interruption constants.
+   *
+   * Read what `false` does not mean. The framework builds its own
+   * `InferenceTurnDetector` whenever none is configured
+   * (`agent_session.js:326`), so `false` does not leave a session with no turn
+   * detection — only `turnDetection: null` does that. What `false` withholds is
+   * the v1-mini detector this product names and the interruption values of
+   * 17.3, which is the real difference between the caller and the receiver.
+   *
+   * The receiver takes `false` because it is not a job: nothing in
+   * `src/rehearsal` defines an agent or takes a `JobContext`, so 8.5 applies and
+   * no executor exists for a local model to run in. Its turns therefore commit
+   * on a delay whatever is configured, and rehearsal turn timing is not the
+   * caller's turn timing. Turning this on for the receiver would not fix that.
+   */
+  turnTaking: boolean;
+}
+
+export async function buildEngines(options: BuildOptions, parts: Parts = {}): Promise<Built> {
   // 18.12: Kokoro on the card, and never the voice the bridge speaks with
   // (18.12.2). `VOICEOVER_TTS=piper` falls back to the bridge's own voice.
-  const voice = process.env.VOICEOVER_TTS === "piper" ? new PiperTTS() : new KokoroTTS(VOICEOVER_VOICE);
-  const ears = new WhisperSTT();
+  const voice =
+    parts.voice ??
+    (process.env.VOICEOVER_TTS === "piper" ? new PiperTTS() : new KokoroTTS(options.voiceName ?? VOICEOVER_VOICE));
+  const ears = parts.ears ?? new WhisperSTT();
   // Loading costs seconds each. Spec 3.1 allows that before a call, never inside one.
   await Promise.all([voice.warm(), ears.warm()]);
 
-  const vad = await silero.VAD.load();
+  const vad = parts.vad ?? (await silero.VAD.load());
+  const brain = parts.brain ?? openRouter(options.brain ?? BRAIN);
 
-  const options: AgentSessionOptions = {
+  const sessionOptions: AgentSessionOptions = {
     vad,
     // Both engines take a file and return a result, so the framework supplies
     // the streaming: a voice detector in front of one, a sentence rule in front
     // of the other (spec 13.6.1).
     stt: new sttNs.StreamAdapter(ears, vad),
     tts: new ttsNs.StreamAdapter(voice, new tokenize.basic.SentenceTokenizer()),
-    llm: new openai.LLM({ model: BRAIN, baseURL: ROUTE, apiKey }),
-    // 8.4. The local model, explicitly: the cloud one would be a paid network
-    // call on the hot path, which 13.8 forbids.
-    turnDetection: new inference.TurnDetector({ version: "v1-mini" }),
-    turnHandling: {
-      interruption: {
-        minDuration: constants.minInterruptionMs,
-        // 17.3. The framework default is 0 and the echo defence needs a word.
-        minWords: constants.minInterruptionWords,
-        falseInterruptionTimeout: constants.falseInterruptionMs,
-        resumeFalseInterruption: true,
-      },
-    },
+    llm: brain,
+    ...(options.turnTaking
+      ? {
+          // 17.5: the flat options are deprecated, so every turn value goes in
+          // the object, `turnDetection` included.
+          turnHandling: {
+            // 8.4. The local model, explicitly: the cloud one would be a paid
+            // network call on the hot path, which 13.8 forbids.
+            turnDetection: parts.turnDetection ?? new inference.TurnDetector({ version: "v1-mini" }),
+            interruption: {
+              minDuration: constants.minInterruptionMs,
+              // 17.3. The framework default is 0 and the echo defence needs a word.
+              minWords: constants.minInterruptionWords,
+              falseInterruptionTimeout: constants.falseInterruptionMs,
+              resumeFalseInterruption: true,
+            },
+          },
+        }
+      : {}),
   };
 
   // The local end-of-turn model needs an inference executor, and the executor
@@ -92,7 +146,7 @@ export async function buildSession(brief: Brief, hooks: SessionHooks = {}): Prom
   // Inside a job the runner is registered in the worker process and the
   // executor arrives on the job context, so the registry here says nothing.
   // Outside one there is no executor at all, which is 8.5.
-  if (!getJobContext(false) && !InferenceRunner.registeredRunners[EOT_METHOD]) {
+  if (options.turnTaking && !getJobContext(false) && !InferenceRunner.registeredRunners[EOT_METHOD]) {
     console.warn(
       "WARNING: the local end-of-turn model is not available in a standalone session.\n" +
         "         Turns will commit on a fixed delay instead (spec 8.2 calls that not good enough).\n" +
@@ -100,7 +154,30 @@ export async function buildSession(brief: Brief, hooks: SessionHooks = {}): Prom
     );
   }
 
-  const session = new AgentSession(options);
+  return {
+    session: new AgentSession(sessionOptions),
+    voice,
+    ears,
+    close: async () => {
+      await voice.close();
+      await ears.close();
+    },
+  };
+}
+
+/** The one route to a hosted brain (4.8). A `Parts.brain` skips it entirely. */
+export function openRouter(model: string): llm.LLM {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set; put it in .env");
+  return new openai.LLM({ model, baseURL: ROUTE, apiKey });
+}
+
+export async function buildSession(
+  brief: Brief,
+  hooks: SessionHooks = {},
+  parts: Parts = {},
+): Promise<Engines> {
+  const built = await buildEngines({ turnTaking: true }, parts);
   const agent = new Agent({
     instructions: instructionsFor(brief),
     tools: {
@@ -126,14 +203,5 @@ export async function buildSession(brief: Brief, hooks: SessionHooks = {}): Prom
     },
   });
 
-  return {
-    session,
-    agent,
-    voice,
-    ears,
-    close: async () => {
-      await voice.close();
-      await ears.close();
-    },
-  };
+  return { ...built, agent };
 }

@@ -11,19 +11,19 @@
  */
 import { voice as voiceNs } from "@livekit/agents";
 import type { AgentSession } from "@livekit/agents";
-import { type CallContext, type Report, buildReport } from "./report.ts";
-import { type AnsweredBy, type CallState, type EndReason, type Event, type Phase, constants, initial, step } from "./state.ts";
-
-export interface TurnTiming {
-  /** End of speech to the turn being committed, the transcriber's time inside it. */
-  pause: number;
-  stt: number;
-  /** The brain, to its first token. */
-  brain: number;
-  /** The voice, to its first audio. */
-  voice: number;
-  total: number;
-}
+import { type Effects, inert } from "./effects.ts";
+import { type CallContext, type Report, type TurnTiming, buildReport } from "./report.ts";
+import {
+  type AnsweredBy,
+  type CallState,
+  type Constants,
+  type EndReason,
+  type Event,
+  type Phase,
+  constants,
+  initial,
+  step,
+} from "./state.ts";
 
 export interface BridgeHooks {
   onPhase?(phase: Phase): void;
@@ -53,10 +53,22 @@ export class SessionBridge {
   private metrics = { eou: 0, stt: 0, ttft: 0, ttfb: 0, fresh: false };
   private readonly deferredKeys = new Set<string>();
 
-  constructor(private readonly hooks: BridgeHooks = {}) {}
+  constructor(
+    private readonly hooks: BridgeHooks = {},
+    /**
+     * What the reducer's decisions do. `inert` keeps a caller that has not been
+     * moved across the seam working unchanged; a real call passes `framework()`.
+     */
+    private readonly effects: Effects = inert,
+    private readonly k: Constants = constants,
+  ) {}
 
   apply(event: Event): void {
-    this.state = step(this.state, event, constants).state;
+    const decided = step(this.state, event, this.k);
+    this.state = decided.state;
+    // The actions were computed and dropped on the floor until this line, which
+    // is why the limits had a second implementation in the job (16.4.1, 11.2).
+    for (const action of decided.actions) this.effects.perform(action);
     if (this.state.phase !== "ended") this.lastPhase = this.state.phase;
   }
 
@@ -208,7 +220,13 @@ export class SessionBridge {
       said: this.said,
       blocked: this.blocked,
     };
-    const report = buildReport(this.state, context, endedAt);
+    // What was measured travels with the report, so 15.16 can be answered from
+    // a file next month instead of only from a console someone watched.
+    const report = buildReport(this.state, context, endedAt, {
+      timings: this.timings,
+      middleReplyMs: this.middleReply(),
+      ranUnder: this.k,
+    });
     report.phaseAtEnd = phaseAtEnd;
     if (durationMs !== undefined) report.durationMs = durationMs;
     return report;

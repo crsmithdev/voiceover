@@ -6,7 +6,25 @@
  * ended the call can be the brain. So nothing here calls anything: it reads the
  * state the reducer already holds and turns it into a record.
  */
-import type { AnsweredBy, CallState, EndReason } from "./state.ts";
+import { type AnsweredBy, type CallState, type Constants, type EndReason, constants } from "./state.ts";
+
+/**
+ * One turn's latency, split the way Section 15 splits it.
+ *
+ * It lives here rather than beside the code that measures it, because the report
+ * is where it ends up and 15.15.5 is a rule about how it is reported: the pause
+ * is a setting, not a cost, so it is never folded into the total's explanation.
+ */
+export interface TurnTiming {
+  /** End of speech to the turn being committed, the transcriber's time inside it. */
+  pause: number;
+  stt: number;
+  /** The brain, to its first token. */
+  brain: number;
+  /** The voice, to its first audio. */
+  voice: number;
+  total: number;
+}
 
 export interface CallContext {
   number: string;
@@ -40,12 +58,42 @@ export interface Report {
   blocked: string[];
   /** 10.2: a question the caller never answered is a failure worth seeing first. */
   disclosureLeftOwed: boolean;
+  /**
+   * 15.16 the per-turn latency this call actually had.
+   *
+   * The bridge measured these all along and nothing kept them: they reached the
+   * console live and stopped there, so the one number the product's central
+   * claim rests on could not be read back after the call. `pause` is reported on
+   * its own because a pause is a setting, not a cost (15.15.5).
+   */
+  timings: TurnTiming[];
+  /** The middle total of those turns, or null when no turn completed. */
+  middleReplyMs: number | null;
+  /**
+   * 17.2 the constants this call ran under.
+   *
+   * A default that is not written down is a dependency that can move, and a
+   * report read next month has to say which values produced it. This is
+   * sidetone's `settingsInForce` in its record header, for the same reason.
+   */
+  ranUnder: Constants;
   trace: string[];
 }
 
 const CLEAN: EndReason[] = ["goal-closed", "message-left", "caller-hung-up"];
 
-export function buildReport(state: CallState, context: CallContext, endedAt: number): Report {
+export interface Measured {
+  timings: TurnTiming[];
+  middleReplyMs: number | null;
+  ranUnder: Constants;
+}
+
+export function buildReport(
+  state: CallState,
+  context: CallContext,
+  endedAt: number,
+  measured: Measured = { timings: [], middleReplyMs: null, ranUnder: constants },
+): Report {
   return {
     number: context.number,
     goal: context.goal,
@@ -60,6 +108,9 @@ export function buildReport(state: CallState, context: CallContext, endedAt: num
     heard: context.heard,
     blocked: context.blocked,
     disclosureLeftOwed: state.owedDisclosure,
+    timings: measured.timings,
+    middleReplyMs: measured.middleReplyMs,
+    ranUnder: measured.ranUnder,
     trace: state.trace,
   };
 }
@@ -73,6 +124,7 @@ const REASONS: Record<EndReason | "unknown", string> = {
   "caller-hung-up": "the caller ended the call",
   "operator-hung-up": "Chris hung up from the console",
   "dead-line": "the line was dead",
+  "dead-air": "the caller went silent and the call was ended from this side",
   unknown: "the call ended without a reason being recorded",
 };
 

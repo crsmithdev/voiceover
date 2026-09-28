@@ -10,15 +10,14 @@
  * Usage:
  *   bun scripts/ui.ts            serves http://127.0.0.1:3002
  */
-import { readdir, readFile, stat, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import { SipClient } from "livekit-server-sdk";
 import { type Brief, instructionsFor } from "../src/call/brief.ts";
-import { type Deployment, dispatchCall, ensureWorker, sendCommand } from "../src/call/dispatch.ts";
-import { type LineType, gate, normalise, ownedNumbers } from "../src/call/numbers.ts";
-import { CALLS_PER_HOUR, readHistory, recordDial, withinRate } from "../src/call/rate.ts";
+import { dialler } from "../src/call/dial.ts";
+import { type Deployment, sendCommand } from "../src/call/dispatch.ts";
+import { type LineType, ownedNumbers } from "../src/call/numbers.ts";
+import { CALLS_PER_HOUR, readHistory, withinRate } from "../src/call/rate.ts";
 import type { Report } from "../src/call/report.ts";
-import { reportDir } from "../src/call/reportStore.ts";
+import { rehearsalDir, reportDir, reports } from "../src/call/reports.ts";
 import { constants } from "../src/call/state.ts";
 import { PROMPTS_FILE, listPrompts, resetPrompt, setPrompt } from "../src/prompts.ts";
 import { PERSONAS } from "../src/rehearsal/personas.ts";
@@ -26,7 +25,6 @@ import {
   CHALLENGES,
   type Challenge,
   LIVEKIT_URL,
-  REHEARSAL_DIR,
   Rehearsal,
   type UiEvent,
   listenToken,
@@ -35,7 +33,7 @@ import {
 const PORT = Number(process.env.VOICEOVER_UI_PORT ?? 3002);
 const PAGE = join(import.meta.dir, "..", "design", "voiceover.html");
 const EVENTS_URL = `http://127.0.0.1:${PORT}/api/internal/events`;
-const RING_SECONDS = 30;
+const place = dialler();
 
 /** A real call needs the cloud project and the trunk; a rehearsal does not. */
 function cloud(): Deployment {
@@ -72,36 +70,6 @@ function emit(event: UiEvent): void {
 }
 
 const json = (body: unknown, status = 200) => Response.json(body, { status });
-
-/**
- * The reports on disk, newest first. 18.6 gives a report 30 days, so this is
- * also where an older one goes: the list is the only thing that reads them.
- */
-async function readReports(dir: string): Promise<(Report & { file: string })[]> {
-  let names: string[];
-  try {
-    names = (await readdir(dir)).filter((name) => name.endsWith(".json"));
-  } catch {
-    return [];
-  }
-  const out: (Report & { file: string })[] = [];
-  const cutoff = Date.now() - 30 * 864e5;
-  for (const name of names) {
-    const path = join(dir, name);
-    try {
-      const when = (await stat(path)).mtimeMs;
-      if (when < cutoff) {
-        await unlink(path).catch(() => undefined);
-        await unlink(path.replace(/\.json$/, ".txt")).catch(() => undefined);
-        continue;
-      }
-      out.push({ ...(JSON.parse(await readFile(path, "utf8")) as Report), file: name });
-    } catch {
-      // a half-written report is not a report
-    }
-  }
-  return out.sort((a, b) => b.endedAt - a.endedAt).slice(0, 50);
-}
 
 Bun.serve({
   port: PORT,
@@ -155,11 +123,6 @@ Bun.serve({
       if (current?.running || (call && !call.ended)) return json({ error: "a call is already running" }, 409);
       const { brief, number, lineType } = (await req.json()) as { brief: Brief; number: string; lineType: LineType };
       if (!brief?.goal?.trim()) return json({ error: "the rundown needs a goal" }, 400);
-      const target = normalise(number ?? "");
-      const verdict = gate({ number: number ?? "", lineType: lineType ?? "unknown" }, ownedNumbers());
-      if (!target || !verdict.allowed) return json({ error: `the gate refused it: ${verdict.allowed ? "" : verdict.because}` }, 400);
-      const rate = withinRate(await readHistory(), Date.now());
-      if (!rate.allowed) return json({ error: `the rate limit refused it: ${rate.because}` }, 429);
 
       let deployment: Deployment;
       try {
@@ -170,40 +133,33 @@ Bun.serve({
       const trunk = process.env.LIVEKIT_TRUNK_ID;
       if (!trunk) return json({ error: "LIVEKIT_TRUNK_ID is not set; run scripts/setup-trunk.ts" }, 400);
 
-      const room = `caller-${Date.now()}`;
-      call = { room, number: target, deployment, ended: false };
-      emit({ type: "status", text: "Starting the caller's worker" });
-      await ensureWorker(deployment, (text) => emit({ type: "status", text }));
-      await dispatchCall(deployment, room, {
-        mode: "call",
+      // Every decision about placing a call is `dial.ts`'s. This route's job is
+      // to turn a refusal into a status code, which is the one thing it knows
+      // that the module does not.
+      const placed = await place.place({
         brief,
-        number: target,
+        number: number ?? "",
+        lineType: lineType ?? "unknown",
+        deployment,
+        trunk,
         events: EVENTS_URL,
         reportDir: reportDir(),
-        classify: true,
+        say: (text) => emit({ type: "status", text }),
+        onAnswered: () => emit({ type: "event", text: "Something picked up", tone: "green" }),
+        onDeadLine: (because) => emit({ type: "event", text: `The line did not answer: ${because}`, tone: "red" }),
       });
-      await recordDial({ at: Date.now(), number: target });
-      emit({ type: "started", room, answers: "unknown" });
-      emit({ type: "phase", phase: "dialing" });
-      emit({ type: "event", text: `Dialing ${target}. The gate allowed it: ${verdict.because}` });
 
-      // The dial is what rings. It resolves when something picks up.
-      void new SipClient(deployment.url, deployment.apiKey, deployment.apiSecret)
-        .createSipParticipant(trunk, target, room, {
-          participantIdentity: "far-end",
-          participantName: target,
-          playDialtone: false,
-          ringingTimeout: RING_SECONDS,
-          maxCallDuration: Math.round(constants.hardLimitMs / 1000),
-          waitUntilAnswered: true,
-        })
-        .then(() => emit({ type: "event", text: "Something picked up", tone: "green" }))
-        .catch((error) => {
-          emit({ type: "event", text: `The line did not answer: ${error instanceof Error ? error.message : String(error)}`, tone: "red" });
-          void sendCommand(deployment, room, { kind: "end", reason: "dead-line" }).catch(() => undefined);
-        });
+      if (!placed.ok) {
+        const status = placed.refusedBy === "rate" ? 429 : 400;
+        return json({ error: `the ${placed.refusedBy} refused it: ${placed.because}` }, status);
+      }
+
+      call = { room: placed.room, number: number ?? "", deployment, ended: false };
+      emit({ type: "started", room: placed.room, answers: "unknown" });
+      emit({ type: "phase", phase: "dialing" });
+      emit({ type: "event", text: `Dialing. The gate allowed it: ${placed.because}` });
       emit({ type: "phase", phase: "ringing" });
-      return json({ room });
+      return json({ room: placed.room });
     }
     if (route === "POST /api/call/hangup") {
       if (!call || call.ended) return json({ error: "no call is running" }, 409);
@@ -211,8 +167,10 @@ Bun.serve({
       return json({ ok: true });
     }
     if (route === "GET /api/reports") {
-      const dir = url.searchParams.get("dir") === "rehearsals" ? REHEARSAL_DIR : reportDir();
-      return json({ dir, reports: await readReports(dir) });
+      // 18.6's expiry happens inside `list()`, so it runs whether or not this
+      // route is the thing that reads them.
+      const store = reports(url.searchParams.get("dir") === "rehearsals" ? rehearsalDir() : reportDir());
+      return json({ dir: store.dir, reports: await store.list() });
     }
     if (route === "GET /api/personas") {
       return json(PERSONAS.map(({ id, name, answers }) => ({ id, name, answers })));

@@ -12,13 +12,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type AudioBuffer, asLanguageCode, mergeFrames, stt } from "@livekit/agents";
 import { encodeWav } from "../audio/pcm.ts";
-import { MODELS, Worker, cudaLibraryPath } from "./worker.ts";
-
-const MODEL = process.env.VOICEOVER_STT_MODEL ?? "small.en";
+import { Worker } from "./worker.ts";
 
 export class WhisperSTT extends stt.STT {
   label = "caller.WhisperSTT";
-  private worker = new Worker("stt_worker.py", [MODEL, MODELS], { LD_LIBRARY_PATH: cudaLibraryPath() });
+  private worker = new Worker("stt");
   private started: Promise<unknown> | null = null;
 
   constructor() {
@@ -34,9 +32,8 @@ export class WhisperSTT extends stt.STT {
   async _recognize(buffer: AudioBuffer): Promise<stt.SpeechEvent> {
     await this.warm();
     const frame = mergeFrames(buffer);
-    const path = join(tmpdir(), `caller-stt-${Date.now()}-${Math.random().toString(36).slice(2)}.wav`);
-    await writeFile(path, encodeWav(frame.data, frame.sampleRate));
-    const reply = await this.worker.ask({ wav: path });
+    // The worker reads the audio from a file and `round` owns that file.
+    const { reply } = await this.worker.round({}, { write: encodeWav(frame.data, frame.sampleRate) });
     const text = String(reply.text ?? "").trim();
     const seconds = frame.samplesPerChannel / frame.sampleRate;
     return {

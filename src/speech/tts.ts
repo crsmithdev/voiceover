@@ -15,16 +15,15 @@ import { join } from "node:path";
 import { AudioFrame } from "@livekit/rtc-node";
 import { type APIConnectOptions, tts } from "@livekit/agents";
 import { decodeWav, frameAt } from "../audio/pcm.ts";
-import { MODELS, Worker } from "./worker.ts";
+import { Worker } from "./worker.ts";
 
-const VOICE = process.env.VOICEOVER_VOICE ?? "en_US-lessac-medium";
 /** Piper's own rate for this voice. `warm` checks it rather than trusting it. */
 const PIPER_RATE = 22_050;
 const FRAME_MS = 20;
 
 export class PiperTTS extends tts.TTS {
   label = "caller.PiperTTS";
-  private worker = new Worker("tts_worker.py", [join(MODELS, `${VOICE}.onnx`)]);
+  private worker = new Worker("piper");
   private started: Promise<unknown> | null = null;
 
   constructor() {
@@ -42,9 +41,8 @@ export class PiperTTS extends tts.TTS {
 
   async say(text: string): Promise<{ samples: Int16Array; sampleRate: number }> {
     await this.warm();
-    const path = join(tmpdir(), `caller-tts-${Date.now()}-${Math.random().toString(36).slice(2)}.wav`);
-    await this.worker.ask({ text, wav: path });
-    return decodeWav(new Uint8Array(await readFile(path)));
+    const { bytes } = await this.worker.round({ text }, { read: true });
+    return decodeWav(bytes as Uint8Array);
   }
 
   synthesize(text: string, connOptions?: APIConnectOptions, abortSignal?: AbortSignal): tts.ChunkedStream {

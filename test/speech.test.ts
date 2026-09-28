@@ -12,7 +12,7 @@ import { initializeLogger } from "@livekit/agents";
 import { decodeWav, encodeWav } from "../src/audio/pcm.ts";
 import { WhisperSTT } from "../src/speech/stt.ts";
 import { PiperTTS } from "../src/speech/tts.ts";
-import { BRIDGE, pythonBin } from "../src/speech/worker.ts";
+import { BRIDGE, ENGINES, pythonFor } from "../src/speech/engines.ts";
 
 describe("encodeWav", () => {
   test("round trips through decodeWav", () => {
@@ -23,7 +23,7 @@ describe("encodeWav", () => {
   });
 });
 
-const available = existsSync(pythonBin()) && existsSync(`${BRIDGE}/speech/tts_worker.py`);
+const available = existsSync(pythonFor(ENGINES.piper)) && existsSync(`${BRIDGE}/speech/tts_worker.py`);
 const describeLocal = available ? describe : describe.skip;
 
 describeLocal("the local engines", () => {

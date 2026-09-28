@@ -13,9 +13,8 @@ import { join } from "node:path";
 import { type APIConnectOptions, tts } from "@livekit/agents";
 import { decodeWav } from "../audio/pcm.ts";
 import { FileChunkedStream } from "./tts.ts";
-import { MODELS, Worker, cudaLibraryPath } from "./worker.ts";
+import { Worker } from "./worker.ts";
 
-const VENV = process.env.VOICEOVER_KOKORO_VENV ?? join(homedir(), ".sidetone", "kokoro-venv");
 const KOKORO_RATE = 24_000;
 
 export class KokoroTTS extends tts.TTS {
@@ -25,12 +24,7 @@ export class KokoroTTS extends tts.TTS {
 
   constructor(public voice: string) {
     super(KOKORO_RATE, 1, { streaming: false });
-    this.worker = new Worker(
-      "kokoro_worker.py",
-      [join(MODELS, "kokoro", "kokoro-v1.0.onnx"), join(MODELS, "kokoro", "voices-v1.0.bin"), voice],
-      { LD_LIBRARY_PATH: cudaLibraryPath(VENV) },
-      join(VENV, "bin", "python"),
-    );
+    this.worker = new Worker("kokoro", voice);
   }
 
   async warm(): Promise<void> {
@@ -39,17 +33,16 @@ export class KokoroTTS extends tts.TTS {
     if (ready.sample_rate && ready.sample_rate !== KOKORO_RATE) {
       throw new Error(`Kokoro runs at ${ready.sample_rate} Hz and this adapter declared ${KOKORO_RATE}`);
     }
-    // onnxruntime falls back to the processor without failing; say so.
-    if (ready.provider && ready.provider !== "CUDAExecutionProvider") {
-      console.warn(`WARNING: the receiver voice runs on ${ready.provider}, not the card`);
-    }
+    // The engine says what is wrong with itself; onnxruntime falls back to the
+    // processor without failing, so this is the only warning there will be.
+    const complaint = this.worker.complaint(ready as Record<string, unknown>);
+    if (complaint) console.warn(`WARNING: ${complaint}`);
   }
 
   async say(text: string): Promise<{ samples: Int16Array; sampleRate: number }> {
     await this.warm();
-    const path = join(tmpdir(), `caller-kokoro-${Date.now()}-${Math.random().toString(36).slice(2)}.wav`);
-    await this.worker.ask({ text, wav: path, voice: this.voice });
-    return decodeWav(new Uint8Array(await readFile(path)));
+    const { bytes } = await this.worker.round({ text, voice: this.voice }, { read: true });
+    return decodeWav(bytes as Uint8Array);
   }
 
   synthesize(text: string, connOptions?: APIConnectOptions, abortSignal?: AbortSignal): tts.ChunkedStream {

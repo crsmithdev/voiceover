@@ -18,9 +18,10 @@ import { RoomEvent } from "@livekit/rtc-node";
 import { type JobContext, ServerOptions, cli, defineAgent, voice as voiceNs } from "@livekit/agents";
 import type { Brief } from "./brief.ts";
 import { SessionBridge } from "./bridge.ts";
-import { writeReport } from "./reportStore.ts";
-import { buildSession } from "./session.ts";
-import { type AnsweredBy, type EndReason, constants } from "./state.ts";
+import { framework } from "./effects.ts";
+import { reports } from "./reports.ts";
+import { type Engines, type SessionHooks, buildSession } from "./session.ts";
+import type { AnsweredBy, EndReason } from "./state.ts";
 import { prompt } from "../prompts.ts";
 
 export const AGENT_NAME = "caller";
@@ -53,8 +54,15 @@ const AMD_ANSWER: Record<voiceNs.AMDCategory, AnsweredBy> = {
   [voiceNs.AMDCategory.UNCERTAIN]: "unknown",
 };
 
-export default defineAgent({
-  entry: async (ctx: JobContext) => {
+/**
+ * How the job gets its engines. A call passes nothing and gets `buildSession`;
+ * a test passes a builder that returns fakes, which is the only way to reach
+ * `entry` without a GPU, a Python venv and a LiveKit deployment.
+ */
+export type MakeEngines = (brief: Brief, hooks: SessionHooks) => Promise<Engines>;
+
+export function callJob(make: MakeEngines = buildSession) {
+  return async (ctx: JobContext) => {
     const job = JSON.parse(ctx.job.metadata || "{}") as JobBrief;
     if (!job.brief?.goal) throw new Error("the job carries no brief");
 
@@ -67,30 +75,52 @@ export default defineAgent({
       }).catch(() => undefined);
     };
 
-    const bridge = new SessionBridge({
-      onPhase: (phase) => post({ type: "phase", phase }),
-      onLine: (who, text, final, id) => post({ type: "line", who, text, final, id }),
-      onEvent: (text, tone) => post({ type: "event", text, tone }),
-      onTiming: (t) => post({ type: "reply", ...t }),
-      onCounts: (counts) => post({ type: "counts", ...counts }),
-    });
-
-    post({ type: "status", text: "Loading the caller: transcriber, voice and brain" });
-    const engines = await buildSession(job.brief, { onDeferred: (detail) => bridge.noteDeferred(detail) });
-    bridge.attach(engines.session);
-
     let offsetMs = 0;
     let ending: EndReason | null = null;
     const end = (reason: EndReason) => {
       ending ??= reason;
     };
 
+    // The bridge has to exist before the engines, because building them needs
+    // its `onDeferred`; the effects have to reach the session the engines
+    // return. A getter closes that loop rather than a second construction step.
+    let live: Engines | null = null;
+
+    const bridge = new SessionBridge(
+      {
+        onPhase: (phase) => post({ type: "phase", phase }),
+        onLine: (who, text, final, id) => post({ type: "line", who, text, final, id }),
+        onEvent: (text, tone) => post({ type: "event", text, tone }),
+        onTiming: (t) => post({ type: "reply", ...t }),
+        onCounts: (counts) => post({ type: "counts", ...counts }),
+      },
+      framework({
+        get session() {
+          if (!live) throw new Error("the reducer decided an action before the session existed");
+          return live.session;
+        },
+        closingLine: prompt("caller.soft-limit"),
+        end,
+        note: (text, tone) => post({ type: "event", text, tone }),
+        phase: (phase) => post({ type: "phase", phase }),
+      }),
+    );
+
+    post({ type: "status", text: "Loading the caller: transcriber, voice and brain" });
+    const engines = await make(job.brief, { onDeferred: (detail) => bridge.noteDeferred(detail) });
+    live = engines;
+    bridge.attach(engines.session);
+
     ctx.room.on(RoomEvent.DataReceived, (payload, _participant, _kind, topic) => {
       if (topic !== COMMAND_TOPIC) return;
       const command = JSON.parse(new TextDecoder().decode(payload)) as Command;
       if (command.kind === "hangup") end("operator-hung-up");
       if (command.kind === "end") end(command.reason);
-      if (command.kind === "jump") offsetMs += command.ms;
+      if (command.kind === "jump") {
+        offsetMs += command.ms;
+        // 16.4.1 the watchdog must not read a moved clock as silence.
+        bridge.apply({ kind: "clockJumped", at: Date.now() + offsetMs });
+      }
     });
     ctx.room.on(RoomEvent.ParticipantDisconnected, (participant) => {
       if (!job.farEnd || participant.identity === job.farEnd) end("far-end-hung-up");
@@ -142,37 +172,27 @@ export default defineAgent({
 
     engines.session.once(voiceNs.AgentSessionEventTypes.Close, () => end("goal-closed"));
 
-    let softFired = false;
+    // The clock, and nothing else. The reducer decides the soft limit (11.2),
+    // the hard limit (11.3) and the dead-air watchdog (16.4.1) off this tick,
+    // and the effects perform what it decided. Before the Effects seam these
+    // twenty lines held a second copy of the limits that no test could reach.
     const elapsed = () => Date.now() - startedAt + offsetMs;
     while (!ending) {
       bridge.apply({ kind: "tick", at: startedAt + elapsed() });
-      if (elapsed() >= constants.hardLimitMs) {
-        end("hard-limit");
-        break;
-      }
-      if (elapsed() >= constants.softLimitMs && !softFired) {
-        softFired = true;
-        post({ type: "event", text: "Soft limit. It closes after the current sentence.", tone: "amber" });
-        post({ type: "phase", phase: "closing" });
-        // 11.2: the limit starts the close and never cuts a sentence.
-        engines.session
-          .generateReply({ instructions: prompt("caller.soft-limit"), allowInterruptions: false })
-          .waitForPlayout()
-          .then(() => end("soft-limit"))
-          .catch(() => end("soft-limit"));
-      }
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
 
     const reason: EndReason = ending ?? "caller-hung-up";
     const report = bridge.report(reason, { number: job.number, goal: job.brief.goal }, Date.now(), elapsed());
-    const path = await writeReport(report, job.reportDir).catch((error) => `not written: ${error}`);
+    const path = await reports(job.reportDir).write(report).catch((error) => `not written: ${error}`);
     post({ type: "ended", report: { ...report, interruptions: bridge.interruptions, falseInterruptions: bridge.falseInterruptions }, path });
 
     await engines.session.close().catch(() => undefined);
     await engines.close().catch(() => undefined);
-  },
-});
+  };
+}
+
+export default defineAgent({ entry: callJob() });
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   cli.runApp(

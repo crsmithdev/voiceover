@@ -35,13 +35,23 @@ export type EndReason =
   | "far-end-hung-up"
   | "caller-hung-up"
   | "operator-hung-up"
-  | "dead-line";
+  | "dead-line"
+  /** 16.4.1 nothing came from the caller's side for deadAirMs, so the host or the brain died. */
+  | "dead-air";
 
 export type Event =
   | { kind: "dial"; at: number }
   | { kind: "answered"; at: number; by: AnsweredBy }
   | { kind: "farEndSpeechStart"; at: number }
   | { kind: "farEndSpeechEnd"; at: number }
+  /**
+   * 16.4.1 a rehearsal moved the clock forward to reach a limit without waiting.
+   *
+   * The jump is a fiction about the time, not real silence, so it counts as a
+   * signal: without this the watchdog reads the whole jump as dead air and ends
+   * the call before the limit the rehearsal was reaching for.
+   */
+  | { kind: "clockJumped"; at: number }
   | { kind: "transcript"; at: number; words: number; disclosureQuestion?: boolean }
   | { kind: "endOfTurn"; at: number }
   | { kind: "sentenceReady"; at: number; text: string }
@@ -89,6 +99,18 @@ export interface Constants {
   softLimitMs: number;
   /** 11.3 */
   hardLimitMs: number;
+  /**
+   * 16.4.1 how long the caller's side may produce nothing before the call is
+   * ended from this side and the report written from the last known state.
+   *
+   * A desktop in a house sleeps, Windows restarts it, the GPU gets busy and a
+   * speech worker dies (16.4). Any of those leaves a real person listening to
+   * silence. The carrier's own twelve-minute cap is a backstop and not an
+   * answer. This is shorter than any turn is slow: 4.6 puts the brain at under
+   * a second to a sentence and 3.1 allows a slow start before the dial, not
+   * inside the call.
+   */
+  deadAirMs: number;
 }
 
 export const constants: Constants = {
@@ -103,6 +125,7 @@ export const constants: Constants = {
   falseInterruptionMs: 2000,
   softLimitMs: 8 * 60_000,
   hardLimitMs: 12 * 60_000,
+  deadAirMs: 20_000,
 };
 
 export interface CallState {
@@ -129,6 +152,12 @@ export interface CallState {
   holdMusic: boolean;
   /** 6.3 a voicemail greeting is a monologue: turn-taking is off until the beep. */
   turnTakingOff: boolean;
+  /**
+   * 16.4.1 when this side last did anything: answered, heard, spoke or finished
+   * speaking. A tick is not a signal, because a tick proves only that the loop
+   * that emits it is alive, which is the thing in doubt.
+   */
+  lastSignalAt: number | null;
   /** What picked up, as far as anything could tell. */
   answeredBy: AnsweredBy | null;
   endReason: EndReason | null;
@@ -151,6 +180,7 @@ export function initial(): CallState {
     closeStarted: false,
     holdMusic: false,
     turnTakingOff: false,
+    lastSignalAt: null,
     answeredBy: null,
     endReason: null,
     trace: [],
@@ -173,6 +203,10 @@ export function step(prev: CallState, event: Event, k: Constants = constants): S
     state.trace.push(`${event.at} ${event.kind} ignored: call ended`);
     return { state, actions };
   }
+
+  // 16.4.1 every event but a tick is proof this side is still working. A tick
+  // proves only that the loop emitting it is alive, which is what is in doubt.
+  if (event.kind !== "tick") state.lastSignalAt = event.at;
 
   switch (event.kind) {
     case "dial":
@@ -354,6 +388,10 @@ export function step(prev: CallState, event: Event, k: Constants = constants): S
       to("ended");
       break;
 
+    // Its whole effect is the signal mark above, which is the point of it.
+    case "clockJumped":
+      break;
+
     case "tick": {
       const elapsed = state.startedAt === null ? 0 : event.at - state.startedAt;
 
@@ -361,6 +399,18 @@ export function step(prev: CallState, event: Event, k: Constants = constants): S
         state.endReason = "hard-limit";
         if (prev.phase === "speaking") actions.push({ kind: "stopPlayback" });
         actions.push({ kind: "endCall", reason: "hard-limit" }, { kind: "writeReport", reason: "hard-limit" });
+        to("ended");
+        break;
+      }
+
+      // 16.4.1 the dead-air watchdog. A host that slept, a worker that died or
+      // a brain that hung all look the same from here: nothing at all. End it
+      // from this side so the other party gets a clean disconnect rather than
+      // an open line, and write the report from the last known state.
+      if (state.answeredBy !== null && state.lastSignalAt !== null && event.at - state.lastSignalAt >= k.deadAirMs) {
+        state.endReason = "dead-air";
+        if (prev.phase === "speaking") actions.push({ kind: "stopPlayback" });
+        actions.push({ kind: "endCall", reason: "dead-air" }, { kind: "writeReport", reason: "dead-air" });
         to("ended");
         break;
       }

@@ -12,12 +12,12 @@
 import { Room } from "@livekit/rtc-node";
 import { initializeLogger, voice as voiceNs } from "@livekit/agents";
 import { SessionBridge } from "../src/call/bridge.ts";
-import { AccessToken, SipClient } from "livekit-server-sdk";
+import { AccessToken } from "livekit-server-sdk";
 import type { Brief } from "../src/call/brief.ts";
-import { gate, normalise, ownedNumbers } from "../src/call/numbers.ts";
-import { readHistory, recordDial, withinRate } from "../src/call/rate.ts";
+import { clear, dialLimits, livekitCarrier } from "../src/call/dial.ts";
+import { recordDial } from "../src/call/rate.ts";
 import { summarise } from "../src/call/report.ts";
-import { writeReport } from "../src/call/reportStore.ts";
+import { reports } from "../src/call/reports.ts";
 import { buildSession } from "../src/call/session.ts";
 import { prompt } from "../src/prompts.ts";
 import { constants } from "../src/call/state.ts";
@@ -40,17 +40,18 @@ const brief: Brief = {
 };
 
 const dial = process.argv.includes("--dial");
-const target = normalise(process.argv.find((arg) => /^\+?\d[\d\s()-]+$/.test(arg)) ?? need("VOICEOVER_TEST_NUMBER"));
-if (!target) throw new Error("the target is not a North American number");
-
-const verdict = gate({ number: target, lineType: "mobile" }, ownedNumbers());
-console.log(`gate: ${verdict.allowed ? `allowed, ${verdict.because}` : `refused, ${verdict.because}`}`);
-if (!verdict.allowed) process.exit(1);
+const asked = process.argv.find((arg) => /^\+?\d[\d\s()-]+$/.test(arg)) ?? need("VOICEOVER_TEST_NUMBER");
 
 const startedAt = Date.now();
-const rate = withinRate(await readHistory(), startedAt);
-console.log(rate.allowed ? `rate: allowed, ${rate.remaining} left this hour` : `rate: refused, ${rate.because}`);
-if (!rate.allowed) process.exit(1);
+// 10.10 and 16.5 through `dial.ts`, in the one order.
+const clearance = await clear({ number: asked, lineType: "mobile" }, { now: startedAt });
+if (!clearance.ok) {
+  console.log(`${clearance.refusedBy}: refused, ${clearance.because}`);
+  process.exit(1);
+}
+const target = clearance.target;
+console.log(`gate: allowed, ${clearance.because}`);
+console.log(`rate: allowed, ${clearance.remaining} left this hour`);
 
 initializeLogger({ pretty: true, level: "warn" });
 console.log("warming the speech engines...");
@@ -85,15 +86,7 @@ bridge.attach(engines.session);
 bridge.apply({ kind: "dial", at: Date.now() });
 await recordDial({ at: startedAt, number: target });
 
-const sip = new SipClient(url, apiKey, apiSecret);
-await sip.createSipParticipant(need("LIVEKIT_TRUNK_ID"), target, roomName, {
-  participantIdentity: "far-end",
-  participantName: target,
-  playDialtone: false,
-  ringingTimeout: 30,
-  maxCallDuration: Math.round(constants.hardLimitMs / 1000),
-  waitUntilAnswered: true,
-});
+await livekitCarrier({ url, apiKey, apiSecret }, need("LIVEKIT_TRUNK_ID")).ring(target, roomName, dialLimits());
 // 13.6.2: nothing here classifies the answer, so it is recorded as unknown.
 bridge.apply({ kind: "answered", at: Date.now(), by: "unknown" });
 console.log("answer: something picked up");
@@ -130,7 +123,7 @@ await room.disconnect();
 await engines.close();
 
 const report = bridge.report(reason, { number: target, goal: brief.goal }, Date.now(), Date.now() - startedAt);
-const path = await writeReport(report);
+const path = await reports().write(report);
 console.log(`\n${summarise(report)}`);
 const middle = bridge.middleReply();
 console.log(`\nheard ${bridge.heard.length}, said ${bridge.said.length}, replies middle ${middle === null ? "none" : `${middle.toFixed(2)} s`}`);

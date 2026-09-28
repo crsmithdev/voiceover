@@ -13,24 +13,21 @@
  *   bun scripts/test-call.ts            a dry run: every check, no dial
  *   bun scripts/test-call.ts --dial     places the call
  */
-import { readFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { AudioFrame, AudioSource, LocalAudioTrack, Room, TrackPublishOptions, TrackSource } from "@livekit/rtc-node";
-import { AccessToken, SipClient } from "livekit-server-sdk";
+import { AccessToken } from "livekit-server-sdk";
 import { FRAME_MS, RTC_RATE, decodeWav, frameAt, resample } from "../src/audio/pcm.ts";
-import { gate, normalise, ownedNumbers } from "../src/call/numbers.ts";
-import { readHistory, recordDial, withinRate } from "../src/call/rate.ts";
+import { clear, dialLimits, livekitCarrier } from "../src/call/dial.ts";
+import { recordDial } from "../src/call/rate.ts";
 import { buildReport, summarise } from "../src/call/report.ts";
-import { writeReport } from "../src/call/reportStore.ts";
+import { reports } from "../src/call/reports.ts";
 import { type Event, run } from "../src/call/state.ts";
-import { Voice } from "../src/speech/voice.ts";
+import { PiperTTS } from "../src/speech/tts.ts";
 
 const LINE =
   "Hello, this is an automated assistant calling on behalf of Chris Smith. " +
   "This is a test call to check the line. Goodbye.";
 
-const RING_SECONDS = 30;
+/** A connectivity test says one sentence, so it needs a minute, not twelve. */
 const MAX_CALL_SECONDS = 60;
 
 const need = (name: string): string => {
@@ -40,31 +37,26 @@ const need = (name: string): string => {
 };
 
 const dial = process.argv.includes("--dial");
-const target = normalise(process.argv.find((arg) => /^\+?\d[\d\s()-]+$/.test(arg)) ?? need("VOICEOVER_TEST_NUMBER"));
-if (!target) throw new Error("the target is not a North American number");
+const asked = process.argv.find((arg) => /^\+?\d[\d\s()-]+$/.test(arg)) ?? need("VOICEOVER_TEST_NUMBER");
 
-// 10.10. The number is one Chris owns, so it passes as "owned" and not as a
-// business line. Nothing else about this call would pass the gate.
-const verdict = gate({ number: target, lineType: "mobile" }, ownedNumbers());
-console.log(`gate: ${verdict.allowed ? `allowed, ${verdict.because}` : `refused, ${verdict.because}`}`);
-if (!verdict.allowed) process.exit(1);
-
-// 16.5.
+// 10.10 and 16.5, in `dial.ts` so this script and the console cannot disagree
+// about the order. The number is one Chris owns, so it passes as "owned" and not
+// as a business line; nothing else about this call would pass the gate.
 const now = Date.now();
-const rate = withinRate(await readHistory(), now);
-console.log(
-  rate.allowed
-    ? `rate: allowed, ${rate.remaining} left this hour`
-    : `rate: refused, ${rate.because}, next at ${new Date(rate.nextAllowedAt).toLocaleTimeString()}`,
-);
-if (!rate.allowed) process.exit(1);
+const clearance = await clear({ number: asked, lineType: "mobile" }, { now });
+if (!clearance.ok) {
+  console.log(`${clearance.refusedBy}: refused, ${clearance.because}`);
+  process.exit(1);
+}
+const target = clearance.target;
+console.log(`gate: allowed, ${clearance.because}`);
+console.log(`rate: allowed, ${clearance.remaining} left this hour`)
 
-const voice = new Voice();
-await voice.start();
-const wavPath = join(tmpdir(), `voiceover-test-${now}.wav`);
-await voice.say(LINE, wavPath);
-voice.stop();
-const wav = decodeWav(new Uint8Array(await readFile(wavPath)));
+// The same voice a real call speaks with, rather than a second copy of the
+// worker protocol: src/speech/voice.ts was that copy and is gone.
+const voice = new PiperTTS();
+const wav = await voice.say(LINE);
+await voice.close();
 const samples = resample(wav.samples, wav.sampleRate, RTC_RATE);
 const seconds = (samples.length / RTC_RATE).toFixed(1);
 console.log(`voice: ${wav.samples.length} samples at ${wav.sampleRate} Hz, ${seconds} s of speech`);
@@ -96,16 +88,8 @@ console.log(`room: joined ${roomName}`);
 let events: Event[] = [{ kind: "dial", at: Date.now() }];
 await recordDial({ at: now, number: target });
 
-const sip = new SipClient(url, apiKey, apiSecret);
-const participant = await sip.createSipParticipant(trunkId, target, roomName, {
-  participantIdentity: "far-end",
-  participantName: target,
-  playDialtone: false,
-  ringingTimeout: RING_SECONDS,
-  maxCallDuration: MAX_CALL_SECONDS,
-  waitUntilAnswered: true,
-});
-console.log(`dialled ${target} as ${participant.participantIdentity}`);
+await livekitCarrier({ url, apiKey, apiSecret }, trunkId).ring(target, roomName, dialLimits(MAX_CALL_SECONDS));
+console.log(`dialled ${target}`);
 
 // `waitUntilAnswered` returns once something picks up, so reaching here is the
 // answer. What picked up is another matter: the answering machine detection
@@ -137,7 +121,7 @@ await room.disconnect();
 
 const { state } = run(events);
 const report = buildReport(state, { number: target, goal: "check the line", heard: [], said: [LINE], blocked: [] }, Date.now());
-const path = await writeReport(report);
+const path = await reports().write(report);
 console.log(`\n${summarise(report)}\n\nreport: ${path}`);
 
 // rtc-node keeps handles open after disconnect, so the process never exits on
